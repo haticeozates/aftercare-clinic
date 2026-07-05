@@ -1,0 +1,70 @@
+import type { PermissionKey, RoleKey, MembershipStatus } from "@/lib/types";
+
+export interface Membership {
+  organizationId: string;
+  roleKey: RoleKey;
+  status: MembershipStatus;
+}
+
+const rolePermissions: Record<RoleKey, PermissionKey[]> = {
+  organization_owner: [
+    "organization.read",
+    "organization.update",
+    "membership.read",
+    "membership.manage",
+    "audit.read"
+  ],
+  organization_admin: [
+    "organization.read",
+    "organization.update",
+    "membership.read",
+    "membership.manage",
+    "audit.read"
+  ],
+  staff: ["organization.read"]
+};
+
+export function resolveRolePermissions(roleKey: RoleKey): PermissionKey[] {
+  return [...rolePermissions[roleKey]];
+}
+
+export function canAccessOrganization(membership: Membership | null, organizationId: string): boolean {
+  return (
+    membership?.status === "active" &&
+    membership.organizationId === organizationId &&
+    rolePermissions[membership.roleKey].includes("organization.read")
+  );
+}
+
+export function hasPermission(membership: Membership | null, permission: PermissionKey): boolean {
+  if (!membership || membership.status !== "active") {
+    return false;
+  }
+
+  return rolePermissions[membership.roleKey].includes(permission);
+}
+
+export function assertOrganizationPermission(
+  membership: Membership | null,
+  requestedOrganizationId: string,
+  permission: PermissionKey
+) {
+  if (!canAccessOrganization(membership, requestedOrganizationId) || !membership) {
+    return {
+      allowed: false,
+      reason: "organization_mismatch_or_inactive" as const
+    };
+  }
+
+  if (!hasPermission(membership, permission)) {
+    return {
+      allowed: false,
+      reason: "permission_denied" as const
+    };
+  }
+
+  return {
+    allowed: true,
+    organizationId: membership.organizationId
+  };
+}

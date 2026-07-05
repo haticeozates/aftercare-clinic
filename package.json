@@ -1,0 +1,39 @@
+{
+  "name": "aftercare-clinic-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:rls": "vitest run tests/rls",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.87.0",
+    "next": "^16.2.10",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "server-only": "^0.0.1",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@types/node": "^24.10.2",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.2.10",
+    "pg": "^8.16.3",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  }
+}
