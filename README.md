@@ -20,7 +20,9 @@ Included through Faz 4:
 - Immutable care template versioning
 - Care plan snapshots from current published template versions
 - Secure care links with hash-only token storage
-- Minimal token exchange to a no-data portal session placeholder
+- Minimal token exchange to a scoped portal session
+- Client care portal for daily task viewing and completion
+- Append-only portal task event history
 - Synthetic local/test seed
 - Unit, integration and RLS policy tests
 
@@ -101,6 +103,9 @@ Secure link validation currently uses a local rate-limit hook so tests and route
 boundaries are explicit without adding a production-grade distributed limiter. Durable
 rate limiting for token validation is a Faz 9 hardening decision and must be backed by
 a shared store before real data is processed.
+
+Portal task mutations use the same local-hook pattern in Faz 5. A durable shared
+limiter for portal task writes remains a Faz 9 hardening requirement before real data.
 
 ## Synthetic Data Rule
 

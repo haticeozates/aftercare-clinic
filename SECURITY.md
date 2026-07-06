@@ -29,6 +29,9 @@ server-only pepper, and exchanged into short-lived HttpOnly portal session cooki
 The current token validation path has a local rate-limit hook only; a durable shared
 rate limiter is required before production use with real data.
 
+Portal task mutation routes also expose only a local abuse-control hook in this phase.
+Distributed rate limiting must be added before processing real client care activity.
+
 ## Reporting
 
 During this early private phase, report suspected security issues directly to the

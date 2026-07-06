@@ -282,6 +282,41 @@ th {
   padding: 16px;
 }
 
+.care-shell {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.care-hero,
+.care-section {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 22px;
+  box-shadow: 0 14px 42px rgba(23, 33, 43, 0.06);
+}
+
+.care-section {
+  margin-top: 16px;
+}
+
+.care-section h2,
+.portal-task-card h3 {
+  margin: 0;
+}
+
+.portal-task-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: #fbfaf6;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -301,9 +336,14 @@ th {
   }
 
   .row-between,
-  .item-card {
+  .item-card,
+  .portal-task-card {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .portal-task-card {
+    grid-template-columns: 1fr;
   }
 
   .toolbar,

@@ -28,6 +28,8 @@ jobs:
       - run: npm run test:plans
       - run: npm run test:secure-links
       - run: npm run test:e2e:phase4
+      - run: npm run test:portal
+      - run: npm run test:e2e:phase5
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
