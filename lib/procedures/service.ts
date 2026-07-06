@@ -76,6 +76,34 @@ export async function createProcedureFromForm(formData: FormData) {
   revalidatePath("/clinic/procedures");
 }
 
+export async function updateProcedureFromForm(formData: FormData) {
+  const context = await requireOrganizationPermission("procedure.manage");
+  const id = String(formData.get("id") ?? "");
+  const parsed = parseProcedureInput({
+    name: String(formData.get("name") ?? ""),
+    category: String(formData.get("category") ?? ""),
+    description: String(formData.get("description") ?? "")
+  });
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase
+    .from("procedures")
+    .update({
+      name: parsed.name,
+      normalized_name: parsed.normalizedName,
+      category: parsed.category,
+      description: parsed.description,
+      updated_by_user_id: context.user.id
+    })
+    .eq("id", id)
+    .eq("organization_id", context.organization.id);
+
+  if (error) {
+    throw new Error(translateProcedureDatabaseError(error));
+  }
+
+  revalidatePath("/clinic/procedures");
+}
+
 export async function deactivateProcedure(id: string) {
   const context = await requireActiveMembership();
 

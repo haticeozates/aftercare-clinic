@@ -1,4 +1,4 @@
-import { createProcedureAction, deactivateProcedureAction } from "@/lib/procedures/actions";
+import { createProcedureAction, deactivateProcedureAction, updateProcedureAction } from "@/lib/procedures/actions";
 import { listProcedures, type ProcedureStatus } from "@/lib/procedures/service";
 
 export const dynamic = "force-dynamic";
@@ -74,12 +74,29 @@ export default async function ProceduresPage({
                   <span className="badge">{procedure.status === "active" ? "Aktif" : "Pasif"}</span>
                 </div>
                 {canManage && procedure.status === "active" ? (
-                  <form action={deactivateProcedureAction}>
-                    <input type="hidden" name="id" value={procedure.id} />
-                    <button className="button secondary" type="submit">
-                      Pasifleştir
+                  <div className="stack">
+                    <button className="button secondary" type="button">
+                      Düzenle
                     </button>
-                  </form>
+                    <form className="inline-form" action={updateProcedureAction}>
+                      <input type="hidden" name="id" value={procedure.id} />
+                      <label htmlFor={`name-${procedure.id}`}>İşlem adı</label>
+                      <input id={`name-${procedure.id}`} name="name" defaultValue={procedure.name} />
+                      <label htmlFor={`category-${procedure.id}`}>Kategori</label>
+                      <input id={`category-${procedure.id}`} name="category" defaultValue={procedure.category ?? ""} />
+                      <label htmlFor={`description-${procedure.id}`}>Kısa açıklama</label>
+                      <textarea id={`description-${procedure.id}`} name="description" defaultValue={procedure.description ?? ""} />
+                      <button className="button" type="submit">
+                        Kaydet
+                      </button>
+                    </form>
+                    <form action={deactivateProcedureAction}>
+                      <input type="hidden" name="id" value={procedure.id} />
+                      <button className="button secondary" type="submit">
+                        Pasifleştir
+                      </button>
+                    </form>
+                  </div>
                 ) : null}
               </article>
             ))}

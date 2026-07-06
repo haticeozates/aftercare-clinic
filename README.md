@@ -5,7 +5,7 @@ Production foundation for AfterCare Clinic. This project is intentionally separa
 
 ## Phase Scope
 
-Included in Faz 0-1:
+Included through Faz 2.5:
 
 - Next.js App Router + TypeScript foundation
 - Environment validation
@@ -13,13 +13,15 @@ Included in Faz 0-1:
 - Organization, role, permission and membership model
 - Tenant isolation/RLS migration
 - Append-only audit foundation
+- Tenant-safe clients/danışan records
+- Tenant-safe procedures/işlem records
+- Local Supabase Auth email/password session flow
+- Role-based browser E2E coverage for owner/admin/staff behavior
 - Synthetic local/test seed
 - Unit, integration and RLS policy tests
 
 Out of scope:
 
-- Clients/danışan records
-- Procedures
 - Care templates/plans
 - Secure links
 - Client portal
@@ -34,19 +36,27 @@ Out of scope:
 ```bash
 npm install
 cp .env.example .env.local
-npm run verify
+npm run supabase:start
+npm run db:reset
+npm run verify:phase2-ui
 ```
 
-Supabase CLI is expected for local database work:
+Supabase CLI is installed as a dev dependency and should be run through npm scripts:
 
 ```bash
-supabase start
-supabase db reset
-npm run test:rls
+npm run supabase:start
+npm run db:reset
+npm run db:lint
+npm run test:db
+npm run test:rls:local
 ```
 
 If the CLI is not installed, SQL migrations and seed files can still be reviewed and
 committed, but real RLS integration tests cannot run against local Postgres.
+
+Local auth users are synthetic `.test` accounts created by `supabase/seed.sql`.
+Use only local/test credentials and never store real user, client, health or photo
+data in this project.
 
 ## Environment
 
@@ -75,8 +85,11 @@ npm test
 npm run test:unit
 npm run test:integration
 npm run test:rls
+npm run test:auth
+npm run test:e2e:phase2
 npm run build
 npm run verify
+npm run verify:phase2-ui
 ```
 
 ## Synthetic Data Rule

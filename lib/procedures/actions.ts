@@ -1,6 +1,6 @@
 "use server";
 
-import { createProcedureFromForm, deactivateProcedure } from "@/lib/procedures/service";
+import { createProcedureFromForm, deactivateProcedure, updateProcedureFromForm } from "@/lib/procedures/service";
 
 export async function createProcedureAction(formData: FormData) {
   await createProcedureFromForm(formData);
@@ -9,4 +9,8 @@ export async function createProcedureAction(formData: FormData) {
 export async function deactivateProcedureAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   await deactivateProcedure(id);
+}
+
+export async function updateProcedureAction(formData: FormData) {
+  await updateProcedureFromForm(formData);
 }

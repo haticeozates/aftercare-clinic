@@ -12,6 +12,8 @@
     "test:integration": "vitest run tests/integration",
     "test:clients": "vitest run tests/unit/clients.test.ts tests/integration/phase2-permissions.test.ts",
     "test:procedures": "vitest run tests/unit/procedures.test.ts tests/integration/phase2-permissions.test.ts",
+    "test:auth": "playwright test tests/e2e/phase2-auth-role.spec.ts --grep \"login|reload|logout|unauthorized\" --project=chromium",
+    "test:e2e:phase2": "playwright test tests/e2e/phase2-auth-role.spec.ts --project=chromium",
     "test:rls": "npm run test:rls:static",
     "test:rls:static": "vitest run tests/rls/sql-policy.test.ts",
     "test:rls:local": "vitest run tests/rls/local-postgres.test.ts",
@@ -19,12 +21,13 @@
     "supabase:stop": "HOME=.supabase-home npx supabase stop",
     "supabase:status": "HOME=.supabase-home npx supabase status",
     "db:reset": "HOME=.supabase-home npx supabase db reset",
-    "db:lint": "HOME=.supabase-home npx supabase db lint --level error --local",
+    "db:lint": "HOME=.supabase-home npx supabase db lint --level error --local --schema public",
     "test:db": "HOME=.supabase-home npx supabase test db supabase/tests --local",
     "verify": "npm run lint && npm run typecheck && npm test && npm run build",
     "verify:ci": "npm run lint && npm run typecheck && npm run test:unit && npm run test:integration && npm run test:rls:static && npm run build",
     "verify:foundation": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run verify",
-    "verify:phase2": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:clients && npm run test:procedures && npm run verify"
+    "verify:phase2": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:clients && npm run test:procedures && npm run verify",
+    "verify:phase2-ui": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:e2e:phase2 && npm run verify"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -35,7 +38,11 @@
     "server-only": "^0.0.1",
     "zod": "^4.2.1"
   },
+  "overrides": {
+    "postcss": "^8.5.16"
+  },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/node": "^24.10.2",

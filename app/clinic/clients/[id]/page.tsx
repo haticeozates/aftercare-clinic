@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { archiveClientAction } from "@/lib/clients/actions";
+import { archiveClientAction, updateClientAction } from "@/lib/clients/actions";
 import { getClientDetail } from "@/lib/clients/service";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +50,25 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <span className="label">Güncellenme</span>
           <strong>{formatDate(client.updatedAt)}</strong>
         </div>
+      </div>
+
+      <div className="panel stack" id="edit-client">
+        <button className="button secondary" type="button">
+          Düzenle
+        </button>
+        <form className="form-grid" action={updateClientAction}>
+          <input type="hidden" name="id" value={client.id} />
+          <label htmlFor="fullName">Ad soyad</label>
+          <input id="fullName" name="fullName" defaultValue={client.fullName} required />
+          <label htmlFor="phone">Telefon</label>
+          <input id="phone" name="phone" defaultValue={client.phone} required />
+          <label htmlFor="email">E-posta opsiyonel</label>
+          <input id="email" name="email" type="email" defaultValue={client.email ?? ""} />
+          <input name="responsibleMembershipId" type="hidden" value="" />
+          <button className="button" type="submit">
+            Kaydet
+          </button>
+        </form>
       </div>
 
       {canArchive && client.status === "active" ? (
