@@ -70,6 +70,35 @@ join public.permissions p on p.key in (
 where r.key = 'staff'
 on conflict do nothing;
 
+insert into public.permissions (key, description)
+values
+  ('template.read', 'Read care templates and versions'),
+  ('template.create', 'Create care templates'),
+  ('template.update', 'Update draft care templates'),
+  ('template.publish', 'Publish care template versions'),
+  ('template.deactivate', 'Deactivate care templates')
+on conflict (key) do update set description = excluded.description;
+
+insert into public.role_permissions (role_id, permission_id)
+select r.id, p.id
+from public.roles r
+join public.permissions p on p.key in (
+  'template.read',
+  'template.create',
+  'template.update',
+  'template.publish',
+  'template.deactivate'
+)
+where r.key in ('organization_owner', 'organization_admin')
+on conflict do nothing;
+
+insert into public.role_permissions (role_id, permission_id)
+select r.id, p.id
+from public.roles r
+join public.permissions p on p.key = 'template.read'
+where r.key = 'staff'
+on conflict do nothing;
+
 insert into public.organizations (id, name, slug, status)
 values
   ('00000000-0000-4000-8000-0000000000a1', 'Organization Alpha', 'organization-alpha', 'active'),
@@ -631,6 +660,267 @@ on conflict (id) do update set
   description = excluded.description,
   updated_by_user_id = '00000000-0000-4000-8000-00000000b101',
   updated_at = now();
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000a101', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+
+insert into public.care_templates (
+  id,
+  organization_id,
+  procedure_id,
+  name,
+  normalized_name,
+  created_by_user_id
+)
+values
+  (
+    '00000000-0000-4000-8000-00000000a401',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000d101',
+    'Alpha Template One',
+    'alpha template one',
+    '00000000-0000-4000-8000-00000000a101'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000a402',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000d102',
+    'Alpha Template Two',
+    'alpha template two',
+    '00000000-0000-4000-8000-00000000a101'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000a403',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000d103',
+    'Alpha Template Three',
+    'alpha template three',
+    '00000000-0000-4000-8000-00000000a101'
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  normalized_name = excluded.normalized_name,
+  updated_by_user_id = '00000000-0000-4000-8000-00000000a101',
+  updated_at = now();
+
+insert into public.care_template_versions (
+  id,
+  organization_id,
+  care_template_id,
+  version_number,
+  status,
+  title,
+  internal_note,
+  created_by_user_id
+)
+values
+  (
+    '00000000-0000-4000-8000-00000000a501',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a401',
+    1,
+    'draft',
+    'Temsili yayın versiyonu',
+    'Temsili demo içeriği; gerçek bakım talimatı değildir.',
+    '00000000-0000-4000-8000-00000000a101'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000a582',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a402',
+    1,
+    'draft',
+    'Görevsiz taslak',
+    null,
+    '00000000-0000-4000-8000-00000000a101'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000a581',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a403',
+    1,
+    'draft',
+    'Boş taslak',
+    null,
+    '00000000-0000-4000-8000-00000000a101'
+  )
+on conflict (id) do nothing;
+
+insert into public.care_template_days (id, organization_id, template_version_id, day_number, title, display_order)
+values
+  ('00000000-0000-4000-8000-00000000a601', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000a501', 1, 'Temsili takip günü', 1),
+  ('00000000-0000-4000-8000-00000000a682', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000a582', 1, 'Görevsiz temsili gün', 1)
+on conflict (id) do nothing;
+
+insert into public.care_template_tasks (id, organization_id, template_day_id, title, description, task_type, required, display_order)
+values
+  (
+    '00000000-0000-4000-8000-00000000a701',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a601',
+    'Klinik tarafından yapılandırılmış temsili günlük görev',
+    'Merkez tarafından belirlenecek takip adımı',
+    'do',
+    true,
+    1
+  )
+on conflict (id) do nothing;
+
+insert into public.symptom_options (id, organization_id, template_version_id, label, normalized_label, allows_severity, display_order)
+values
+  (
+    '00000000-0000-4000-8000-00000000a801',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a501',
+    'Klinik değerlendirmesi için temsili durum',
+    'klinik değerlendirmesi için temsili durum',
+    true,
+    1
+  )
+on conflict (id) do nothing;
+
+insert into public.alert_rules (id, organization_id, template_version_id, symptom_option_id, rule_type, severity_level, configuration, message_label)
+values
+  (
+    '00000000-0000-4000-8000-00000000a901',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a501',
+    '00000000-0000-4000-8000-00000000a801',
+    'symptom_selected',
+    'medium',
+    '{}',
+    'Temsili takip uyarısı'
+  )
+on conflict (id) do nothing;
+
+do $$
+begin
+  if (select status from public.care_template_versions where id = '00000000-0000-4000-8000-00000000a501') = 'draft' then
+    perform public.publish_care_template_version('00000000-0000-4000-8000-00000000a501');
+  end if;
+
+  insert into public.care_template_versions (
+    id,
+    organization_id,
+    care_template_id,
+    version_number,
+    status,
+    title,
+    internal_note,
+    created_by_user_id
+  )
+  values (
+    '00000000-0000-4000-8000-00000000a502',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a401',
+    2,
+    'draft',
+    'Temsili emekli versiyon',
+    null,
+    '00000000-0000-4000-8000-00000000a101'
+  )
+  on conflict (id) do nothing;
+
+  insert into public.care_template_days (id, organization_id, template_version_id, day_number, title, display_order)
+  values ('00000000-0000-4000-8000-00000000a602', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000a502', 1, 'Temsili geçmiş gün', 1)
+  on conflict (id) do nothing;
+
+  insert into public.care_template_tasks (id, organization_id, template_day_id, title, description, task_type, required, display_order)
+  values (
+    '00000000-0000-4000-8000-00000000a702',
+    '00000000-0000-4000-8000-0000000000a1',
+    '00000000-0000-4000-8000-00000000a602',
+    'Merkez tarafından belirlenecek takip adımı',
+    null,
+    'information',
+    true,
+    1
+  )
+  on conflict (id) do nothing;
+
+  if (select status from public.care_template_versions where id = '00000000-0000-4000-8000-00000000a502') = 'draft' then
+    perform public.publish_care_template_version('00000000-0000-4000-8000-00000000a502');
+    perform set_config('app.retiring_template_version', '00000000-0000-4000-8000-00000000a502', true);
+    update public.care_template_versions
+    set status = 'retired'
+    where id = '00000000-0000-4000-8000-00000000a502';
+    update public.care_templates
+    set current_published_version_id = '00000000-0000-4000-8000-00000000a501',
+        updated_by_user_id = '00000000-0000-4000-8000-00000000a101'
+    where id = '00000000-0000-4000-8000-00000000a401';
+  end if;
+end $$;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000b101', false);
+
+insert into public.care_templates (
+  id,
+  organization_id,
+  procedure_id,
+  name,
+  normalized_name,
+  created_by_user_id
+)
+values
+  (
+    '00000000-0000-4000-8000-00000000b401',
+    '00000000-0000-4000-8000-0000000000b1',
+    '00000000-0000-4000-8000-00000000d201',
+    'Beta Template One',
+    'beta template one',
+    '00000000-0000-4000-8000-00000000b101'
+  ),
+  (
+    '00000000-0000-4000-8000-00000000b402',
+    '00000000-0000-4000-8000-0000000000b1',
+    '00000000-0000-4000-8000-00000000d202',
+    'Beta Template Two',
+    'beta template two',
+    '00000000-0000-4000-8000-00000000b101'
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  normalized_name = excluded.normalized_name,
+  updated_by_user_id = '00000000-0000-4000-8000-00000000b101',
+  updated_at = now();
+
+insert into public.care_template_versions (
+  id,
+  organization_id,
+  care_template_id,
+  version_number,
+  status,
+  title,
+  created_by_user_id
+)
+values
+  ('00000000-0000-4000-8000-00000000b501', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b401', 1, 'draft', 'Beta yayın versiyonu', '00000000-0000-4000-8000-00000000b101'),
+  ('00000000-0000-4000-8000-00000000b502', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b402', 1, 'draft', 'Beta taslak versiyonu', '00000000-0000-4000-8000-00000000b101')
+on conflict (id) do nothing;
+
+insert into public.care_template_days (id, organization_id, template_version_id, day_number, title, display_order)
+values
+  ('00000000-0000-4000-8000-00000000b601', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b501', 1, 'Beta temsili takip günü', 1),
+  ('00000000-0000-4000-8000-00000000b602', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b502', 1, 'Beta taslak günü', 1)
+on conflict (id) do nothing;
+
+insert into public.care_template_tasks (id, organization_id, template_day_id, title, task_type, required, display_order)
+values
+  ('00000000-0000-4000-8000-00000000b701', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b601', 'Klinik tarafından yapılandırılmış temsili günlük görev', 'do', true, 1)
+on conflict (id) do nothing;
+
+insert into public.symptom_options (id, organization_id, template_version_id, label, normalized_label, display_order)
+values
+  ('00000000-0000-4000-8000-00000000b801', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b501', 'Klinik değerlendirmesi için temsili durum', 'klinik değerlendirmesi için temsili durum', 1)
+on conflict (id) do nothing;
+
+do $$
+begin
+  if (select status from public.care_template_versions where id = '00000000-0000-4000-8000-00000000b501') = 'draft' then
+    perform public.publish_care_template_version('00000000-0000-4000-8000-00000000b501');
+  end if;
+end $$;
 
 reset role;
 

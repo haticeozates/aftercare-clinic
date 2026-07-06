@@ -19,10 +19,41 @@ export const AUDIT_ACTIONS = [
   "procedure.viewed",
   "procedure.updated",
   "procedure.deactivated",
-  "procedure.manage_denied"
+  "procedure.manage_denied",
+  "template.created",
+  "template.updated",
+  "template.deactivated",
+  "template.viewed",
+  "template_draft.created",
+  "template_day.created",
+  "template_day.updated",
+  "template_day.deleted",
+  "template_task.created",
+  "template_task.updated",
+  "template_task.deleted",
+  "symptom_option.created",
+  "symptom_option.updated",
+  "alert_rule.created",
+  "alert_rule.updated",
+  "template.published",
+  "template.publish_denied",
+  "template.immutable_change_denied"
 ] as const;
 
-export const AUDIT_ENTITY_TYPES = ["auth", "organization", "membership", "audit_log", "client", "procedure"] as const;
+export const AUDIT_ENTITY_TYPES = [
+  "auth",
+  "organization",
+  "membership",
+  "audit_log",
+  "client",
+  "procedure",
+  "template",
+  "template_version",
+  "template_day",
+  "template_task",
+  "symptom_option",
+  "alert_rule"
+] as const;
 export const AUDIT_RESULTS = ["success", "failure", "denied"] as const;
 export const AUDIT_ACTOR_TYPES = ["user", "system"] as const;
 
@@ -42,7 +73,11 @@ const allowedMetadataKeys = new Set([
   "source",
   "previous_status",
   "new_status",
-  "changed_fields"
+  "changed_fields",
+  "version_number",
+  "task_type",
+  "rule_type",
+  "severity_level"
 ]);
 
 export type SafeAuditMetadata = Record<string, string | number | boolean | null>;

@@ -23,6 +23,8 @@ jobs:
       - run: npm run test:rls:local
       - run: npm run test:auth
       - run: npm run test:e2e:phase2
+      - run: npm run test:templates
+      - run: npm run test:e2e:phase3
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

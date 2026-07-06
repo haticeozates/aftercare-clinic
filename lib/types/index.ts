@@ -13,7 +13,12 @@ export type PermissionKey =
   | "client.update"
   | "client.archive"
   | "procedure.read"
-  | "procedure.manage";
+  | "procedure.manage"
+  | "template.read"
+  | "template.create"
+  | "template.update"
+  | "template.publish"
+  | "template.deactivate";
 
 export type MembershipStatus = "active" | "inactive";
 

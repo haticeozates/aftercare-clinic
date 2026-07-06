@@ -12,8 +12,10 @@
     "test:integration": "vitest run tests/integration",
     "test:clients": "vitest run tests/unit/clients.test.ts tests/integration/phase2-permissions.test.ts",
     "test:procedures": "vitest run tests/unit/procedures.test.ts tests/integration/phase2-permissions.test.ts",
+    "test:templates": "vitest run tests/unit/templates.test.ts tests/integration/phase3-templates.test.ts",
     "test:auth": "playwright test tests/e2e/phase2-auth-role.spec.ts --grep \"login|reload|logout|unauthorized\" --project=chromium",
     "test:e2e:phase2": "playwright test tests/e2e/phase2-auth-role.spec.ts --project=chromium",
+    "test:e2e:phase3": "playwright test tests/e2e/phase3-templates.spec.ts --project=chromium",
     "test:rls": "npm run test:rls:static",
     "test:rls:static": "vitest run tests/rls/sql-policy.test.ts",
     "test:rls:local": "vitest run tests/rls/local-postgres.test.ts",
@@ -27,7 +29,8 @@
     "verify:ci": "npm run lint && npm run typecheck && npm run test:unit && npm run test:integration && npm run test:rls:static && npm run build",
     "verify:foundation": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run verify",
     "verify:phase2": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:clients && npm run test:procedures && npm run verify",
-    "verify:phase2-ui": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:e2e:phase2 && npm run verify"
+    "verify:phase2-ui": "npm run supabase:status && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:e2e:phase2 && npm run verify",
+    "verify:phase3": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:templates && npm run test:e2e:phase3 && npm run verify && npm audit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

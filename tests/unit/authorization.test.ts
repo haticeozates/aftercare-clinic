@@ -27,7 +27,8 @@ describe("authorization primitives", () => {
       "client.read",
       "client.create",
       "client.update",
-      "procedure.read"
+      "procedure.read",
+      "template.read"
     ]);
   });
 
