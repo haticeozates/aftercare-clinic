@@ -18,7 +18,14 @@ export type PermissionKey =
   | "template.create"
   | "template.update"
   | "template.publish"
-  | "template.deactivate";
+  | "template.deactivate"
+  | "plan.read"
+  | "plan.create"
+  | "plan.update"
+  | "plan.stop"
+  | "secure_link.create"
+  | "secure_link.revoke"
+  | "secure_link.rotate";
 
 export type MembershipStatus = "active" | "inactive";
 

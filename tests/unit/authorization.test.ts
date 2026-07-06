@@ -28,7 +28,14 @@ describe("authorization primitives", () => {
       "client.create",
       "client.update",
       "procedure.read",
-      "template.read"
+      "template.read",
+      "plan.read",
+      "plan.create",
+      "plan.update",
+      "plan.stop",
+      "secure_link.create",
+      "secure_link.revoke",
+      "secure_link.rotate"
     ]);
   });
 

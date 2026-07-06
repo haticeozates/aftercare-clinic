@@ -19,14 +19,15 @@ const foundationTables = [
   "care_template_days",
   "care_template_tasks",
   "symptom_options",
-  "alert_rules"
-];
-
-const forbiddenFutureTables = [
+  "alert_rules",
   "care_plans",
   "care_plan_days",
   "care_plan_tasks",
   "secure_links",
+  "portal_sessions"
+];
+
+const forbiddenFutureTables = [
   "photo_requests",
   "photo_records",
   "symptom_checks",
@@ -87,7 +88,7 @@ describe("local Postgres RLS integration", () => {
     }
   });
 
-  it("has only the foundation, phase 2 and phase 3 tables needed so far", async () => {
+  it("has only the foundation, phase 2, phase 3 and phase 4 tables needed so far", async () => {
     const result = await getClient().query<{ tablename: string }>(
       "select tablename from pg_tables where schemaname = 'public'"
     );

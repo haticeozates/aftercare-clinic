@@ -25,6 +25,9 @@ jobs:
       - run: npm run test:e2e:phase2
       - run: npm run test:templates
       - run: npm run test:e2e:phase3
+      - run: npm run test:plans
+      - run: npm run test:secure-links
+      - run: npm run test:e2e:phase4
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

@@ -99,6 +99,32 @@ join public.permissions p on p.key = 'template.read'
 where r.key = 'staff'
 on conflict do nothing;
 
+insert into public.permissions (key, description)
+values
+  ('plan.read', 'Read care plans'),
+  ('plan.create', 'Create care plans'),
+  ('plan.update', 'Update care plan operational fields'),
+  ('plan.stop', 'Stop care plans'),
+  ('secure_link.create', 'Create secure care links'),
+  ('secure_link.revoke', 'Revoke secure care links'),
+  ('secure_link.rotate', 'Rotate secure care links')
+on conflict (key) do update set description = excluded.description;
+
+insert into public.role_permissions (role_id, permission_id)
+select r.id, p.id
+from public.roles r
+join public.permissions p on p.key in (
+  'plan.read',
+  'plan.create',
+  'plan.update',
+  'plan.stop',
+  'secure_link.create',
+  'secure_link.revoke',
+  'secure_link.rotate'
+)
+where r.key in ('organization_owner', 'organization_admin', 'staff')
+on conflict do nothing;
+
 insert into public.organizations (id, name, slug, status)
 values
   ('00000000-0000-4000-8000-0000000000a1', 'Organization Alpha', 'organization-alpha', 'active'),
@@ -922,6 +948,61 @@ begin
   end if;
 end $$;
 
+reset role;
+select set_config('app.creating_care_plan_snapshot', 'on', true);
+
+insert into public.care_plans (
+  id,
+  organization_id,
+  client_id,
+  procedure_id,
+  care_template_id,
+  template_version_id,
+  responsible_membership_id,
+  status,
+  start_date,
+  end_date,
+  control_date,
+  stopped_at,
+  stopped_by_user_id,
+  created_by_user_id
+)
+values
+  ('00000000-0000-4000-8000-00000000e101', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000c101', '00000000-0000-4000-8000-00000000d101', '00000000-0000-4000-8000-00000000a401', '00000000-0000-4000-8000-00000000a501', (select id from public.organization_memberships where organization_id = '00000000-0000-4000-8000-0000000000a1' and user_id = '00000000-0000-4000-8000-00000000a103'), 'active', current_date, current_date, now() + interval '7 days', null, null, '00000000-0000-4000-8000-00000000a101'),
+  ('00000000-0000-4000-8000-00000000e102', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000c102', '00000000-0000-4000-8000-00000000d101', '00000000-0000-4000-8000-00000000a401', '00000000-0000-4000-8000-00000000a501', null, 'scheduled', current_date + 1, current_date + 1, null, null, null, '00000000-0000-4000-8000-00000000a101'),
+  ('00000000-0000-4000-8000-00000000e103', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000c103', '00000000-0000-4000-8000-00000000d101', '00000000-0000-4000-8000-00000000a401', '00000000-0000-4000-8000-00000000a501', null, 'completed', current_date - 3, current_date - 3, null, null, null, '00000000-0000-4000-8000-00000000a101'),
+  ('00000000-0000-4000-8000-00000000e104', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000c101', '00000000-0000-4000-8000-00000000d101', '00000000-0000-4000-8000-00000000a401', '00000000-0000-4000-8000-00000000a501', null, 'stopped', current_date - 1, current_date - 1, null, now() - interval '1 hour', '00000000-0000-4000-8000-00000000a101', '00000000-0000-4000-8000-00000000a101'),
+  ('00000000-0000-4000-8000-00000000e201', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000c201', '00000000-0000-4000-8000-00000000d201', '00000000-0000-4000-8000-00000000b401', '00000000-0000-4000-8000-00000000b501', null, 'active', current_date, current_date, null, null, null, '00000000-0000-4000-8000-00000000b101'),
+  ('00000000-0000-4000-8000-00000000e202', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000c202', '00000000-0000-4000-8000-00000000d201', '00000000-0000-4000-8000-00000000b401', '00000000-0000-4000-8000-00000000b501', null, 'scheduled', current_date + 1, current_date + 1, null, null, null, '00000000-0000-4000-8000-00000000b101')
+on conflict (id) do nothing;
+
+insert into public.care_plan_days (id, organization_id, care_plan_id, source_template_day_id, day_number, scheduled_date, title)
+values
+  ('00000000-0000-4000-8000-00000000f101', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e101', '00000000-0000-4000-8000-00000000a601', 1, current_date, 'Temsili takip günü'),
+  ('00000000-0000-4000-8000-00000000f102', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e102', '00000000-0000-4000-8000-00000000a601', 1, current_date + 1, 'Temsili takip günü'),
+  ('00000000-0000-4000-8000-00000000f103', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e103', '00000000-0000-4000-8000-00000000a601', 1, current_date - 3, 'Temsili takip günü'),
+  ('00000000-0000-4000-8000-00000000f104', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e104', '00000000-0000-4000-8000-00000000a601', 1, current_date - 1, 'Temsili takip günü'),
+  ('00000000-0000-4000-8000-00000000f201', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000e201', '00000000-0000-4000-8000-00000000b601', 1, current_date, 'Beta temsili takip günü'),
+  ('00000000-0000-4000-8000-00000000f202', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000e202', '00000000-0000-4000-8000-00000000b601', 1, current_date + 1, 'Beta temsili takip günü')
+on conflict (id) do nothing;
+
+insert into public.care_plan_tasks (id, organization_id, care_plan_day_id, source_template_task_id, title, description, task_type, required, display_order)
+values
+  ('00000000-0000-4000-8000-00000000a711', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000f101', '00000000-0000-4000-8000-00000000a701', 'Klinik tarafından yapılandırılmış temsili günlük görev', 'Merkez tarafından belirlenecek takip adımı', 'do', true, 1),
+  ('00000000-0000-4000-8000-00000000a712', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000f102', '00000000-0000-4000-8000-00000000a701', 'Klinik tarafından yapılandırılmış temsili günlük görev', 'Merkez tarafından belirlenecek takip adımı', 'do', true, 1),
+  ('00000000-0000-4000-8000-00000000a713', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000f103', '00000000-0000-4000-8000-00000000a701', 'Klinik tarafından yapılandırılmış temsili günlük görev', 'Merkez tarafından belirlenecek takip adımı', 'do', true, 1),
+  ('00000000-0000-4000-8000-00000000a714', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000f104', '00000000-0000-4000-8000-00000000a701', 'Klinik tarafından yapılandırılmış temsili günlük görev', 'Merkez tarafından belirlenecek takip adımı', 'do', true, 1),
+  ('00000000-0000-4000-8000-00000000b711', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000f201', '00000000-0000-4000-8000-00000000b701', 'Klinik tarafından yapılandırılmış temsili günlük görev', null, 'do', true, 1),
+  ('00000000-0000-4000-8000-00000000b712', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000f202', '00000000-0000-4000-8000-00000000b701', 'Klinik tarafından yapılandırılmış temsili günlük görev', null, 'do', true, 1)
+on conflict (id) do nothing;
+
+insert into public.secure_links (id, organization_id, care_plan_id, token_hash, token_prefix, status, expires_at, created_by_user_id)
+values
+  ('00000000-0000-4000-8000-00000000a911', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e101', 'hash-seed-active', 'see', 'active', now() + interval '3 days', '00000000-0000-4000-8000-00000000a101'),
+  ('00000000-0000-4000-8000-00000000b911', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000e201', 'hash-seed-beta', 'bet', 'active', now() + interval '3 days', '00000000-0000-4000-8000-00000000b101')
+on conflict (id) do nothing;
+
+select set_config('app.creating_care_plan_snapshot', 'off', true);
 reset role;
 
 insert into public.audit_logs (

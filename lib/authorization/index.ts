@@ -23,7 +23,14 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "template.create",
     "template.update",
     "template.publish",
-    "template.deactivate"
+    "template.deactivate",
+    "plan.read",
+    "plan.create",
+    "plan.update",
+    "plan.stop",
+    "secure_link.create",
+    "secure_link.revoke",
+    "secure_link.rotate"
   ],
   organization_admin: [
     "organization.read",
@@ -41,9 +48,30 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "template.create",
     "template.update",
     "template.publish",
-    "template.deactivate"
+    "template.deactivate",
+    "plan.read",
+    "plan.create",
+    "plan.update",
+    "plan.stop",
+    "secure_link.create",
+    "secure_link.revoke",
+    "secure_link.rotate"
   ],
-  staff: ["organization.read", "client.read", "client.create", "client.update", "procedure.read", "template.read"]
+  staff: [
+    "organization.read",
+    "client.read",
+    "client.create",
+    "client.update",
+    "procedure.read",
+    "template.read",
+    "plan.read",
+    "plan.create",
+    "plan.update",
+    "plan.stop",
+    "secure_link.create",
+    "secure_link.revoke",
+    "secure_link.rotate"
+  ]
 };
 
 export function resolveRolePermissions(roleKey: RoleKey): PermissionKey[] {

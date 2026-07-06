@@ -37,7 +37,19 @@ export const AUDIT_ACTIONS = [
   "alert_rule.updated",
   "template.published",
   "template.publish_denied",
-  "template.immutable_change_denied"
+  "template.immutable_change_denied",
+  "plan.created",
+  "plan.viewed",
+  "plan.updated",
+  "plan.stopped",
+  "plan.status_change_denied",
+  "plan.create_denied",
+  "secure_link.created",
+  "secure_link.rotated",
+  "secure_link.revoked",
+  "secure_link.validation_succeeded",
+  "secure_link.validation_failed",
+  "secure_link.create_denied"
 ] as const;
 
 export const AUDIT_ENTITY_TYPES = [
@@ -52,7 +64,12 @@ export const AUDIT_ENTITY_TYPES = [
   "template_day",
   "template_task",
   "symptom_option",
-  "alert_rule"
+  "alert_rule",
+  "plan",
+  "plan_day",
+  "plan_task",
+  "secure_link",
+  "portal_session"
 ] as const;
 export const AUDIT_RESULTS = ["success", "failure", "denied"] as const;
 export const AUDIT_ACTOR_TYPES = ["user", "system"] as const;
@@ -77,7 +94,12 @@ const allowedMetadataKeys = new Set([
   "version_number",
   "task_type",
   "rule_type",
-  "severity_level"
+  "severity_level",
+  "day_count",
+  "task_count",
+  "expiry_category",
+  "result_reason",
+  "rotated"
 ]);
 
 export type SafeAuditMetadata = Record<string, string | number | boolean | null>;
