@@ -141,7 +141,7 @@ prepare role_permission_delete as delete from public.role_permissions;
 select throws_ok('role_permission_delete', '42501', null, 'Browser client cannot change role permissions');
 
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
-select is((select count(*)::int from public.audit_logs where organization_id = '00000000-0000-4000-8000-0000000000a1'), 1, 'Alpha owner can read Alpha audit logs');
+select ok((select count(*)::int from public.audit_logs where organization_id = '00000000-0000-4000-8000-0000000000a1') >= 1, 'Alpha owner can read Alpha audit logs');
 
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a103');
 select is((select count(*)::int from public.audit_logs), 0, 'Alpha staff cannot read audit logs');

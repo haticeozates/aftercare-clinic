@@ -16,9 +16,16 @@ describe("foundation RLS migration", () => {
       "permissions",
       "role_permissions",
       "organization_memberships",
-      "audit_logs"
+      "audit_logs",
+      "clients",
+      "procedures"
     ]) {
-      expect(migration).toContain(`alter table public.${table} enable row level security`);
+      const foundation = migration.includes(`alter table public.${table} enable row level security`);
+      const phase2 = readFileSync(
+        join(process.cwd(), "supabase/migrations/20260706010000_clients_procedures.sql"),
+        "utf8"
+      ).includes(`alter table public.${table} enable row level security`);
+      expect(foundation || phase2).toBe(true);
     }
   });
 

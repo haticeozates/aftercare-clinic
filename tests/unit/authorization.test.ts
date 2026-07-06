@@ -22,7 +22,13 @@ const staff: Membership = {
 describe("authorization primitives", () => {
   it("calculates role permissions for seeded roles", () => {
     expect(resolveRolePermissions("organization_owner")).toContain("audit.read");
-    expect(resolveRolePermissions("staff")).toEqual(["organization.read"]);
+    expect(resolveRolePermissions("staff")).toEqual([
+      "organization.read",
+      "client.read",
+      "client.create",
+      "client.update",
+      "procedure.read"
+    ]);
   });
 
   it("allows active membership for the matching organization only", () => {

@@ -7,7 +7,13 @@ export type PermissionKey =
   | "organization.update"
   | "membership.read"
   | "membership.manage"
-  | "audit.read";
+  | "audit.read"
+  | "client.read"
+  | "client.create"
+  | "client.update"
+  | "client.archive"
+  | "procedure.read"
+  | "procedure.manage";
 
 export type MembershipStatus = "active" | "inactive";
 

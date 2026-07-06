@@ -9,10 +9,20 @@ export const AUDIT_ACTIONS = [
   "membership.created",
   "membership.role_updated",
   "membership.deactivated",
-  "authorization.denied"
+  "authorization.denied",
+  "client.created",
+  "client.viewed",
+  "client.updated",
+  "client.archived",
+  "client.archive_denied",
+  "procedure.created",
+  "procedure.viewed",
+  "procedure.updated",
+  "procedure.deactivated",
+  "procedure.manage_denied"
 ] as const;
 
-export const AUDIT_ENTITY_TYPES = ["auth", "organization", "membership", "audit_log"] as const;
+export const AUDIT_ENTITY_TYPES = ["auth", "organization", "membership", "audit_log", "client", "procedure"] as const;
 export const AUDIT_RESULTS = ["success", "failure", "denied"] as const;
 export const AUDIT_ACTOR_TYPES = ["user", "system"] as const;
 
@@ -27,7 +37,12 @@ const allowedMetadataKeys = new Set([
   "previous_role",
   "membership_status",
   "request_path",
-  "permission"
+  "permission",
+  "permission_key",
+  "source",
+  "previous_status",
+  "new_status",
+  "changed_fields"
 ]);
 
 export type SafeAuditMetadata = Record<string, string | number | boolean | null>;
@@ -80,6 +95,25 @@ export function validateAuditEvent(input: AuditEventInput) {
 
 export async function writeAuditEvent(input: AuditEventInput) {
   const event = validateAuditEvent(input);
+  const { createAdminSupabaseClient } = await import("@/lib/supabase/admin");
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase.rpc("write_audit_log", {
+    target_organization_id: event.organizationId,
+    actor_type: event.actorType,
+    actor_user_id: event.actorUserId ?? null,
+    action: event.action,
+    entity_type: event.entityType,
+    entity_id: event.entityId ?? null,
+    result: event.result,
+    request_id: event.requestId ?? null,
+    session_id: event.sessionId ?? null,
+    safe_metadata: event.safeMetadata
+  });
+
+  if (error) {
+    throw new Error("Audit event could not be written.");
+  }
+
   return event;
 }
 

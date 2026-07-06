@@ -12,16 +12,28 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "organization.update",
     "membership.read",
     "membership.manage",
-    "audit.read"
+    "audit.read",
+    "client.read",
+    "client.create",
+    "client.update",
+    "client.archive",
+    "procedure.read",
+    "procedure.manage"
   ],
   organization_admin: [
     "organization.read",
     "organization.update",
     "membership.read",
     "membership.manage",
-    "audit.read"
+    "audit.read",
+    "client.read",
+    "client.create",
+    "client.update",
+    "client.archive",
+    "procedure.read",
+    "procedure.manage"
   ],
-  staff: ["organization.read"]
+  staff: ["organization.read", "client.read", "client.create", "client.update", "procedure.read"]
 };
 
 export function resolveRolePermissions(roleKey: RoleKey): PermissionKey[] {

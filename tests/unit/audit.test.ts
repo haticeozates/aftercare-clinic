@@ -9,6 +9,7 @@ describe("audit metadata safety", () => {
   it("removes disallowed sensitive metadata keys", () => {
     const safe = sanitizeAuditMetadata({
       reason: "permission_denied",
+      permission_key: "client.archive",
       target_role: "staff",
       token: "secret-token",
       email: "person@example.test",
@@ -18,6 +19,7 @@ describe("audit metadata safety", () => {
 
     expect(safe).toEqual({
       reason: "permission_denied",
+      permission_key: "client.archive",
       target_role: "staff"
     });
   });
@@ -27,7 +29,7 @@ describe("audit metadata safety", () => {
       validateAuditEvent({
         organizationId: "org-alpha",
         actorType: "user",
-        action: "client.created",
+        action: "unknown.created",
         entityType: "organization",
         result: "success",
         safeMetadata: {}
@@ -37,5 +39,7 @@ describe("audit metadata safety", () => {
 
   it("accepts the foundation audit action catalog", () => {
     expect(AUDIT_ACTIONS).toContain("authorization.denied");
+    expect(AUDIT_ACTIONS).toContain("client.created");
+    expect(AUDIT_ACTIONS).toContain("procedure.updated");
   });
 });

@@ -12,11 +12,11 @@ const foundationTables = [
   "role_permissions",
   "organization_memberships",
   "audit_logs",
+  "clients",
+  "procedures"
 ];
 
-const forbiddenPhaseTwoTables = [
-  "clients",
-  "procedures",
+const forbiddenFutureTables = [
   "care_templates",
   "care_plans",
   "secure_links",
@@ -77,14 +77,14 @@ describe("local Postgres RLS integration", () => {
     }
   });
 
-  it("has only the foundation tables needed for phases 0-1", async () => {
+  it("has only the foundation and phase 2 tables needed so far", async () => {
     const result = await getClient().query<{ tablename: string }>(
       "select tablename from pg_tables where schemaname = 'public'"
     );
     const tableNames = result.rows.map((row) => row.tablename);
 
     expect(tableNames).toEqual(expect.arrayContaining(foundationTables));
-    expect(tableNames).not.toEqual(expect.arrayContaining(forbiddenPhaseTwoTables));
+    expect(tableNames).not.toEqual(expect.arrayContaining(forbiddenFutureTables));
   });
 
   it("enables RLS on every exposed foundation table", async () => {
