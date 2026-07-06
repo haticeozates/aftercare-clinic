@@ -52,7 +52,7 @@ All rows below map to `supabase/tests/phase4_care_plans_secure_links.test.sql`.
 | 39 | Staff own-org plan için link oluşturabilir | Staff can create secure link for own organization plan | PASS |
 | 40 | Cross-tenant plan için link oluşturamaz | Cross-tenant plan cannot receive link | PASS |
 | 41 | Stopped plan için link oluşturulamaz | Stopped plan cannot receive link | PASS |
-| 42 | Plain token DB'de yoktur | Plain token is not stored as hash | PASS |
+| 42 | Plain token DB'de yoktur | Plain token is not stored; only its hash is stored | PASS |
 | 43 | Token hash unique | Token hash unique constraint rejects duplicates | PASS |
 | 44 | Plan başına tek active link | Plan has one active link / Only one active link per plan | PASS |
 | 45 | Rotate eski linki revoke eder | Old link revoked by rotation | PASS |
@@ -66,7 +66,7 @@ All rows below map to `supabase/tests/phase4_care_plans_secure_links.test.sql`.
 | 53 | Anon secure_links okuyamaz | Anon cannot read secure links table | PASS |
 | 54 | Browser direct secure_link insert/update/delete yapamaz | Browser direct secure link insert/update is blocked / Secure link hard delete is blocked | PASS |
 | 55 | Valid token session oluşturabilir | Valid token can create portal session | PASS |
-| 56 | Session kısa TTL taşır | portal session cookie is HttpOnly SameSite Lax and short lived (E2E) | PASS |
+| 56 | Session kısa TTL taşır | Cookie TTL is proven by E2E/unit coverage: `portal session cookie is HttpOnly SameSite Lax and short lived` and `parsePortalSessionCookieOptions` maxAge test. pgTAP covers expired/revoked session invalidation. | PASS |
 | 57 | Invalid/revoked/expired token session oluşturamaz | Invalid token cannot create portal session / Revoked token cannot create portal session / Expired token cannot create portal session | PASS |
 | 58 | Session hash browser-readable DB read değildir | Portal session rows are not browser-readable | PASS |
 | 59 | Session revoke/expiry sonrası kullanılamaz | Expired portal session does not validate / Revoked portal session does not validate | PASS |

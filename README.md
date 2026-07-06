@@ -39,7 +39,7 @@ npm install
 cp .env.example .env.local
 npm run supabase:start
 npm run db:reset
-npm run verify:phase2-ui
+npm run verify:phase4
 ```
 
 Supabase CLI is installed as a dev dependency and should be run through npm scripts:
