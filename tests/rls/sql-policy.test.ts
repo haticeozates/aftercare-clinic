@@ -25,7 +25,9 @@ describe("foundation RLS migration", () => {
   it("prevents browser clients from inserting, updating, or deleting audit logs", () => {
     expect(migration).toContain("audit_logs are append-only");
     expect(migration).toContain("revoke insert, update, delete on public.audit_logs from authenticated");
-    expect(migration).toContain("revoke insert, update, delete on public.audit_logs from anon");
+    expect(migration).toContain("revoke all on public.audit_logs from anon");
+    expect(migration).toContain("prevent_audit_log_mutation");
+    expect(migration).toContain("write_audit_log");
   });
 
   it("scopes organization reads and updates through active membership and permissions", () => {

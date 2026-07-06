@@ -15,6 +15,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run supabase:start
+      - run: npm run db:reset
+      - run: npm run db:lint
+      - run: npm run test:db
+      - run: npm run test:rls:local
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -22,3 +27,6 @@ jobs:
       - name: Secret scan placeholder
         run: |
           echo "Use GitHub secret scanning and add a dedicated scanner before production secrets exist."
+      - name: Stop local Supabase
+        if: always()
+        run: npm run supabase:stop

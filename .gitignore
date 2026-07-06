@@ -10,3 +10,4 @@ coverage
 *.tsbuildinfo
 supabase/.branches
 supabase/.temp
+.supabase-home

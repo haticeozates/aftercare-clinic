@@ -40,6 +40,204 @@ values
   ('00000000-0000-4000-8000-0000000000b1', 'Organization Beta', 'organization-beta', 'active')
 on conflict (slug) do update set name = excluded.name, status = excluded.status;
 
+insert into auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000a101',
+    'authenticated',
+    'authenticated',
+    'alpha-owner@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000a102',
+    'authenticated',
+    'authenticated',
+    'alpha-admin@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000a103',
+    'authenticated',
+    'authenticated',
+    'alpha-staff@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000b101',
+    'authenticated',
+    'authenticated',
+    'beta-owner@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000b102',
+    'authenticated',
+    'authenticated',
+    'beta-admin@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000b103',
+    'authenticated',
+    'authenticated',
+    'beta-staff@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000f001',
+    'authenticated',
+    'authenticated',
+    'no-membership@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '00000000-0000-4000-8000-00000000f002',
+    'authenticated',
+    'authenticated',
+    'inactive-member@example.test',
+    crypt('local-test-password', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"synthetic":true}'::jsonb,
+    now(),
+    now()
+  )
+on conflict (id) do update set
+  email = excluded.email,
+  updated_at = now();
+
+insert into public.user_profiles (id, display_name)
+values
+  ('00000000-0000-4000-8000-00000000a101', 'Alpha Owner'),
+  ('00000000-0000-4000-8000-00000000a102', 'Alpha Admin'),
+  ('00000000-0000-4000-8000-00000000a103', 'Alpha Staff'),
+  ('00000000-0000-4000-8000-00000000b101', 'Beta Owner'),
+  ('00000000-0000-4000-8000-00000000b102', 'Beta Admin'),
+  ('00000000-0000-4000-8000-00000000b103', 'Beta Staff'),
+  ('00000000-0000-4000-8000-00000000f001', 'No Membership User'),
+  ('00000000-0000-4000-8000-00000000f002', 'Inactive Member')
+on conflict (id) do update set
+  display_name = excluded.display_name,
+  updated_at = now();
+
+insert into public.organization_memberships (
+  organization_id,
+  user_id,
+  role_id,
+  status
+)
+select
+  membership.organization_id,
+  membership.user_id,
+  roles.id,
+  membership.status
+from (
+  values
+    (
+      '00000000-0000-4000-8000-0000000000a1'::uuid,
+      '00000000-0000-4000-8000-00000000a101'::uuid,
+      'organization_owner',
+      'active'
+    ),
+    (
+      '00000000-0000-4000-8000-0000000000a1'::uuid,
+      '00000000-0000-4000-8000-00000000a102'::uuid,
+      'organization_admin',
+      'active'
+    ),
+    (
+      '00000000-0000-4000-8000-0000000000a1'::uuid,
+      '00000000-0000-4000-8000-00000000a103'::uuid,
+      'staff',
+      'active'
+    ),
+    (
+      '00000000-0000-4000-8000-0000000000b1'::uuid,
+      '00000000-0000-4000-8000-00000000b101'::uuid,
+      'organization_owner',
+      'active'
+    ),
+    (
+      '00000000-0000-4000-8000-0000000000b1'::uuid,
+      '00000000-0000-4000-8000-00000000b102'::uuid,
+      'organization_admin',
+      'active'
+    ),
+    (
+      '00000000-0000-4000-8000-0000000000b1'::uuid,
+      '00000000-0000-4000-8000-00000000b103'::uuid,
+      'staff',
+      'active'
+    ),
+    (
+      '00000000-0000-4000-8000-0000000000a1'::uuid,
+      '00000000-0000-4000-8000-00000000f002'::uuid,
+      'staff',
+      'inactive'
+    )
+) as membership(organization_id, user_id, role_key, status)
+join public.roles on roles.key = membership.role_key
+on conflict (organization_id, user_id) do update set
+  role_id = excluded.role_id,
+  status = excluded.status,
+  updated_at = now();
+
 insert into public.audit_logs (
   organization_id,
   actor_type,
