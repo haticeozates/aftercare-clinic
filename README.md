@@ -5,7 +5,7 @@ Production foundation for AfterCare Clinic. This project is intentionally separa
 
 ## Phase Scope
 
-Included through Faz 2.5:
+Included through Faz 4:
 
 - Next.js App Router + TypeScript foundation
 - Environment validation
@@ -17,14 +17,15 @@ Included through Faz 2.5:
 - Tenant-safe procedures/işlem records
 - Local Supabase Auth email/password session flow
 - Role-based browser E2E coverage for owner/admin/staff behavior
+- Immutable care template versioning
+- Care plan snapshots from current published template versions
+- Secure care links with hash-only token storage
+- Minimal token exchange to a no-data portal session placeholder
 - Synthetic local/test seed
 - Unit, integration and RLS policy tests
 
 Out of scope:
 
-- Care templates/plans
-- Secure links
-- Client portal
 - Symptoms, alerts, photos/storage
 - Consent/data requests
 - WhatsApp, payment, analytics, AI
@@ -87,10 +88,19 @@ npm run test:integration
 npm run test:rls
 npm run test:auth
 npm run test:e2e:phase2
+npm run test:e2e:phase3
+npm run test:e2e:phase4
 npm run build
 npm run verify
-npm run verify:phase2-ui
+npm run verify:phase4
 ```
+
+## Phase 4 Security Notes
+
+Secure link validation currently uses a local rate-limit hook so tests and route
+boundaries are explicit without adding a production-grade distributed limiter. Durable
+rate limiting for token validation is a Faz 9 hardening decision and must be backed by
+a shared store before real data is processed.
 
 ## Synthetic Data Rule
 

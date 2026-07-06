@@ -42,4 +42,12 @@ describe("environment validation", () => {
     });
     expect(JSON.stringify(publicEnv)).not.toContain("service");
   });
+
+  it("fails fast when token pepper is missing and never exposes it as public env", () => {
+    const env: Record<string, string | undefined> = { ...baseEnv };
+    delete env.AUDIT_LOG_PEPPER;
+
+    expect(() => parseServerEnv(env)).toThrow(/AUDIT_LOG_PEPPER/);
+    expect(JSON.stringify(getPublicEnv(baseEnv))).not.toContain("pepper");
+  });
 });

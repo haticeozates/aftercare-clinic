@@ -22,6 +22,13 @@ personal data, health data, photos, payment data or production credentials.
 Audit records are append-only. Metadata must use an allowlist and must not include
 request body dumps, health text, tokens, secrets, full contact details or storage URLs.
 
+## Secure Links
+
+Raw secure-link tokens must be processed only server-side, stored only as hashes with a
+server-only pepper, and exchanged into short-lived HttpOnly portal session cookies.
+The current token validation path has a local rate-limit hook only; a durable shared
+rate limiter is required before production use with real data.
+
 ## Reporting
 
 During this early private phase, report suspected security issues directly to the
