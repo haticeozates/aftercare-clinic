@@ -62,14 +62,14 @@ export default async function ClientsPage({
               <tbody>
                 {clients.map((client) => (
                   <tr key={client.id}>
-                    <td>{client.fullName}</td>
-                    <td>{client.maskedPhone}</td>
-                    <td>
+                    <td data-label="Ad soyad">{client.fullName}</td>
+                    <td data-label="Telefon">{client.maskedPhone}</td>
+                    <td data-label="Durum">
                       <span className="badge">{client.status === "active" ? "Aktif" : "Arşivli"}</span>
                     </td>
-                    <td>{client.responsibleMembershipId ? "Atandı" : "Atanmadı"}</td>
-                    <td>{formatDate(client.createdAt)}</td>
-                    <td>
+                    <td data-label="Sorumlu">{client.responsibleMembershipId ? "Atandı" : "Atanmadı"}</td>
+                    <td data-label="Oluşturulma">{formatDate(client.createdAt)}</td>
+                    <td data-label="Aksiyon">
                       <Link href={`/clinic/clients/${client.id}`}>Detay</Link>
                     </td>
                   </tr>

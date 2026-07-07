@@ -1,34 +1,21 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { requireActiveMembership } from "@/lib/auth/server";
 import { signOutAction } from "@/lib/auth/actions";
+import { ClinicShell } from "@/components/clinic/clinic-shell";
+import { getServerEnv } from "@/lib/env";
 
 export default async function ClinicLayout({ children }: { children: ReactNode }) {
   const context = await requireActiveMembership();
+  const env = getServerEnv();
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div>
-          <p className="eyebrow">AfterCare Clinic</p>
-          <h2>Platform</h2>
-          <p>{context.organization.name}</p>
-        </div>
-        <nav className="nav-list" aria-label="Klinik menüsü">
-          <Link href="/clinic">Temel</Link>
-          <Link href="/clinic/clients">Danışanlar</Link>
-          <Link href="/clinic/procedures">İşlemler</Link>
-          <Link href="/clinic/templates">Bakım Şablonları</Link>
-          <Link href="/clinic/plans">Bakım Planları</Link>
-          <Link href="/clinic/alerts">Takip Bildirimleri</Link>
-        </nav>
-        <form action={signOutAction}>
-          <button className="button secondary" type="submit">
-            Çıkış yap
-          </button>
-        </form>
-      </aside>
-      <main className="content-shell">{children}</main>
-    </div>
+    <ClinicShell
+      organizationName={context.organization.name}
+      roleKey={context.membership.roleKey}
+      appEnv={env.APP_ENV}
+      signOutAction={signOutAction}
+    >
+      {children}
+    </ClinicShell>
   );
 }
