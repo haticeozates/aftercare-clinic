@@ -25,7 +25,11 @@ export type PermissionKey =
   | "plan.stop"
   | "secure_link.create"
   | "secure_link.revoke"
-  | "secure_link.rotate";
+  | "secure_link.rotate"
+  | "alert.read"
+  | "alert.acknowledge"
+  | "alert.resolve"
+  | "alert.dismiss";
 
 export type MembershipStatus = "active" | "inactive";
 

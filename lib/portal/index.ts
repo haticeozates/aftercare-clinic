@@ -13,12 +13,19 @@ export interface PortalTask {
 }
 
 export interface PortalDay {
+  id: string;
   dayNumber: number;
   scheduledDate: string;
   title: string | null;
   status: "pending" | "available" | "completed" | "skipped" | "locked";
   availability: PortalDayAvailability;
   tasks: PortalTask[];
+}
+
+export interface PortalCheckInOption {
+  id: string;
+  label: string;
+  allowsSeverity: boolean;
 }
 
 export interface PortalPlan {
@@ -28,6 +35,10 @@ export interface PortalPlan {
   endDate: string;
   today: string;
   timezone: "Europe/Istanbul";
+  checkIn: {
+    options: PortalCheckInOption[];
+    submittedDayIds: string[];
+  };
   days: PortalDay[];
 }
 
@@ -42,12 +53,18 @@ type RawPortalTask = {
 };
 
 type RawPortalDay = {
+  id?: unknown;
   day_number?: unknown;
   scheduled_date?: unknown;
   title?: unknown;
   status?: unknown;
   availability?: unknown;
   tasks?: unknown;
+};
+
+type RawPortalCheckIn = {
+  options?: unknown;
+  submitted_day_ids?: unknown;
 };
 
 type RawPortalPlan = {
@@ -57,6 +74,7 @@ type RawPortalPlan = {
   end_date?: unknown;
   today?: unknown;
   timezone?: unknown;
+  check_in?: unknown;
   days?: unknown;
 };
 
@@ -104,6 +122,9 @@ function taskType(value: unknown): PortalTask["taskType"] {
 
 export function sanitizePortalPlan(raw: RawPortalPlan & Record<string, unknown>): PortalPlan {
   const days = Array.isArray(raw.days) ? (raw.days as RawPortalDay[]) : [];
+  const checkIn = (raw.check_in && typeof raw.check_in === "object" ? raw.check_in : {}) as RawPortalCheckIn;
+  const checkInOptions = Array.isArray(checkIn.options) ? (checkIn.options as Array<Record<string, unknown>>) : [];
+  const submittedDayIds = Array.isArray(checkIn.submitted_day_ids) ? checkIn.submitted_day_ids.map((id) => String(id)) : [];
 
   return {
     planStatus: raw.plan_status === "scheduled" || raw.plan_status === "completed" ? raw.plan_status : "active",
@@ -112,9 +133,18 @@ export function sanitizePortalPlan(raw: RawPortalPlan & Record<string, unknown>)
     endDate: String(raw.end_date ?? ""),
     today: String(raw.today ?? ""),
     timezone: "Europe/Istanbul",
+    checkIn: {
+      options: checkInOptions.map((option) => ({
+        id: String(option.id ?? ""),
+        label: String(option.label ?? ""),
+        allowsSeverity: option.allows_severity === true
+      })),
+      submittedDayIds
+    },
     days: days.map((day) => {
       const tasks = Array.isArray(day.tasks) ? (day.tasks as RawPortalTask[]) : [];
       return {
+        id: String(day.id ?? ""),
         dayNumber: Number(day.day_number ?? 0),
         scheduledDate: String(day.scheduled_date ?? ""),
         title: stringOrNull(day.title),

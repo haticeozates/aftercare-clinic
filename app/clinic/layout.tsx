@@ -20,6 +20,7 @@ export default async function ClinicLayout({ children }: { children: ReactNode }
           <Link href="/clinic/procedures">İşlemler</Link>
           <Link href="/clinic/templates">Bakım Şablonları</Link>
           <Link href="/clinic/plans">Bakım Planları</Link>
+          <Link href="/clinic/alerts">Takip Bildirimleri</Link>
         </nav>
         <form action={signOutAction}>
           <button className="button secondary" type="submit">

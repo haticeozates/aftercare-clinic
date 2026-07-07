@@ -5,6 +5,7 @@ import { getServerEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { hashSecureToken } from "@/lib/secure-links";
 import { mapPortalError, sanitizePortalPlan, type PortalPlan, type PortalTaskStatus } from "@/lib/portal";
+import { buildReportItemsPayload, mapCheckInError, type ReportItemInput } from "@/lib/check-ins";
 
 const PORTAL_COOKIE_NAME = "aftercare_portal_session";
 
@@ -61,5 +62,33 @@ export async function updatePortalTaskStatus(taskId: string, status: Extract<Por
   return {
     taskStatus: result?.task_status,
     dayStatus: result?.day_status
+  };
+}
+
+export async function submitPortalCheckIn(dayId: string, items: ReportItemInput[]) {
+  const sessionHash = await getPortalSessionHash();
+  if (!sessionHash) {
+    return { error: "Bağlantı geçersiz veya süresi dolmuş." };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.rpc("submit_symptom_report_for_portal", {
+    target_session_hash: sessionHash,
+    target_day_id: dayId,
+    target_items: buildReportItemsPayload(items)
+  });
+
+  if (error) {
+    return { error: mapCheckInError(error) };
+  }
+
+  const result = data as { error?: string; status?: string; report_id?: string; alert_count?: number } | null;
+  if (result?.error) {
+    return { error: mapCheckInError(result.error) };
+  }
+
+  return {
+    status: result?.status ?? "submitted",
+    reportId: result?.report_id ?? null
   };
 }

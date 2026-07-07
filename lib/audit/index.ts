@@ -49,7 +49,22 @@ export const AUDIT_ACTIONS = [
   "secure_link.revoked",
   "secure_link.validation_succeeded",
   "secure_link.validation_failed",
-  "secure_link.create_denied"
+  "secure_link.create_denied",
+  "portal.viewed",
+  "portal.session_invalid",
+  "portal.task_completed",
+  "portal.task_reopened",
+  "portal.task_change_denied",
+  "portal.future_task_denied",
+  "portal.plan_inactive_denied",
+  "symptom_report.submitted",
+  "symptom_report.submit_denied",
+  "alert.created",
+  "alert.viewed",
+  "alert.acknowledged",
+  "alert.resolved",
+  "alert.dismissed",
+  "alert.status_change_denied"
 ] as const;
 
 export const AUDIT_ENTITY_TYPES = [
@@ -68,8 +83,13 @@ export const AUDIT_ENTITY_TYPES = [
   "plan",
   "plan_day",
   "plan_task",
+  "plan_task_event",
   "secure_link",
-  "portal_session"
+  "portal_session",
+  "symptom_report",
+  "symptom_report_item",
+  "alert",
+  "alert_event"
 ] as const;
 export const AUDIT_RESULTS = ["success", "failure", "denied"] as const;
 export const AUDIT_ACTOR_TYPES = ["user", "system"] as const;
@@ -99,7 +119,13 @@ const allowedMetadataKeys = new Set([
   "task_count",
   "expiry_category",
   "result_reason",
-  "rotated"
+  "rotated",
+  "event_type",
+  "day_number",
+  "required",
+  "selected_option_count",
+  "alert_count",
+  "resolution_code"
 ]);
 
 export type SafeAuditMetadata = Record<string, string | number | boolean | null>;

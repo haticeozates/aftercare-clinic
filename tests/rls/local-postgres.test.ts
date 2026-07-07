@@ -23,15 +23,21 @@ const foundationTables = [
   "care_plans",
   "care_plan_days",
   "care_plan_tasks",
+  "care_plan_task_events",
   "secure_links",
-  "portal_sessions"
+  "portal_sessions",
+  "care_plan_symptom_options",
+  "care_plan_alert_rules",
+  "symptom_reports",
+  "symptom_report_items",
+  "alerts",
+  "alert_events"
 ];
 
 const forbiddenFutureTables = [
   "photo_requests",
   "photo_records",
   "symptom_checks",
-  "alerts",
   "consent_records",
   "data_requests",
   "notification_records"

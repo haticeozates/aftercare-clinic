@@ -30,7 +30,11 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "plan.stop",
     "secure_link.create",
     "secure_link.revoke",
-    "secure_link.rotate"
+    "secure_link.rotate",
+    "alert.read",
+    "alert.acknowledge",
+    "alert.resolve",
+    "alert.dismiss"
   ],
   organization_admin: [
     "organization.read",
@@ -55,7 +59,11 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "plan.stop",
     "secure_link.create",
     "secure_link.revoke",
-    "secure_link.rotate"
+    "secure_link.rotate",
+    "alert.read",
+    "alert.acknowledge",
+    "alert.resolve",
+    "alert.dismiss"
   ],
   staff: [
     "organization.read",
@@ -70,7 +78,11 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "plan.stop",
     "secure_link.create",
     "secure_link.revoke",
-    "secure_link.rotate"
+    "secure_link.rotate",
+    "alert.read",
+    "alert.acknowledge",
+    "alert.resolve",
+    "alert.dismiss"
   ]
 };
 

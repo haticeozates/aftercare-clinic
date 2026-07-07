@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getPortalPlan } from "@/lib/portal/service";
 import { PortalTaskButton } from "@/app/care/session/task-button";
+import { CheckInForm } from "@/app/care/session/check-in-form";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,16 @@ export default async function CareSessionPage() {
           <div className="empty-state">Bugün için gösterilecek görev bulunmuyor.</div>
         )}
       </section>
+
+      {todayDay ? (
+        <CheckInForm
+          dayId={todayDay.id}
+          mode={plan.mode}
+          availability={todayDay.availability}
+          options={plan.checkIn.options}
+          alreadySubmitted={plan.checkIn.submittedDayIds.includes(todayDay.id)}
+        />
+      ) : null}
 
       <section className="care-section stack" aria-labelledby="days-heading">
         <h2 id="days-heading">Plan günleri</h2>
