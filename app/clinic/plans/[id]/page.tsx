@@ -2,6 +2,7 @@ import { stopPlanAction } from "@/lib/plans/actions";
 import { planStatusLabel } from "@/lib/plans";
 import { getPlanDetail } from "@/lib/plans/service";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/formatters";
+import { PhotoRecordCard } from "@/components/clinic/photo-record-card";
 import { LinkActions } from "./link-actions";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,14 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
                   <li key={task.id}>{task.title}</li>
                 ))}
               </ul>
+              {day.photos.length > 0 ? (
+                <div className="stack compact-stack">
+                  <h4>Fotoğraf kayıtları</h4>
+                  {day.photos.map((photo) => (
+                    <PhotoRecordCard key={photo.id} photo={photo} />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </article>
         ))}

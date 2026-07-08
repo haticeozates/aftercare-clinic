@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireActiveMembership, requireOrganizationPermission } from "@/lib/auth/server";
 import { hasPermission } from "@/lib/authorization";
 import { writeAuditEvent } from "@/lib/audit";
+import { sanitizeClinicPhotoRecord, type ClinicPhotoRecordDto } from "@/lib/photos/clinic-view";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { mapPlanDatabaseError, parsePlanCreateInput, planStatusLabel, type PlanStatus } from "@/lib/plans";
 
@@ -26,6 +27,7 @@ export interface PlanDaySnapshot {
   scheduledDate: string;
   title: string | null;
   tasks: { id: string; title: string; description: string | null; taskType: string; required: boolean }[];
+  photos: ClinicPhotoRecordDto[];
 }
 
 export interface SecureLinkMetadata {
@@ -68,6 +70,22 @@ type TaskRow = {
   task_type: string;
   required: boolean;
   display_order: number;
+};
+
+type PhotoRecordRow = {
+  id: string;
+  photo_request_id: string;
+  care_plan_day_id: string;
+  uploaded_at: string;
+  width: number;
+  height: number;
+  verified_mime_type: "image/webp";
+};
+
+type PhotoRequestRow = {
+  id: string;
+  label: string;
+  required: boolean;
 };
 
 function relationOne<T>(value: T | T[] | null): T | null {
@@ -198,9 +216,17 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
     redirect("/clinic/plans");
   }
 
-  const [days, tasks, links] = await Promise.all([
+  const [days, tasks, photos, links] = await Promise.all([
     supabase.from("care_plan_days").select("id,day_number,scheduled_date,title").eq("organization_id", context.organization.id).eq("care_plan_id", id).order("day_number").returns<DayRow[]>(),
     supabase.from("care_plan_tasks").select("id,care_plan_day_id,title,description,task_type,required,display_order").eq("organization_id", context.organization.id).order("display_order").returns<TaskRow[]>(),
+    supabase
+      .from("photo_records")
+      .select("id,photo_request_id,care_plan_day_id,uploaded_at,width,height,verified_mime_type")
+      .eq("organization_id", context.organization.id)
+      .eq("care_plan_id", id)
+      .eq("processing_status", "ready")
+      .order("uploaded_at", { ascending: false })
+      .returns<PhotoRecordRow[]>(),
     supabase
       .from("secure_links")
       .select("id,token_prefix,status,expires_at,created_at")
@@ -212,9 +238,25 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
       .returns<{ id: string; token_prefix: string | null; status: "active" | "revoked" | "expired"; expires_at: string; created_at: string }[]>()
   ]);
 
-  if (days.error || tasks.error || links.error) {
+  if (days.error || tasks.error || photos.error || links.error) {
     throw new Error("Plan detayı alınamadı.");
   }
+
+  const photoRequestIds = Array.from(new Set(photos.data.map((photo) => photo.photo_request_id)));
+  const photoRequests = photoRequestIds.length
+    ? await supabase
+        .from("photo_requests")
+        .select("id,label,required")
+        .eq("organization_id", context.organization.id)
+        .in("id", photoRequestIds)
+        .returns<PhotoRequestRow[]>()
+    : { data: [] as PhotoRequestRow[], error: null };
+
+  if (photoRequests.error) {
+    throw new Error("Plan detayı alınamadı.");
+  }
+
+  const requestsById = new Map(photoRequests.data.map((request) => [request.id, request]));
 
   await writeAuditEvent({
     organizationId: context.organization.id,
@@ -243,7 +285,22 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
             description: task.description,
             taskType: task.task_type,
             required: task.required
-          }))
+          })),
+        photos: photos.data
+          .filter((photo) => photo.care_plan_day_id === day.id)
+          .map((photo) => {
+            const request = requestsById.get(photo.photo_request_id);
+            return sanitizeClinicPhotoRecord({
+              id: photo.id,
+              request_label: request?.label,
+              request_required: request?.required,
+              day_number: day.day_number,
+              uploaded_at: photo.uploaded_at,
+              width: photo.width,
+              height: photo.height,
+              mime_type: photo.verified_mime_type
+            });
+          })
       })),
       activeLink: links.data[0]
         ? {
