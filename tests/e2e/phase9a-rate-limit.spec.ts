@@ -11,9 +11,15 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/clinic$/);
 }
 
-async function openSeededPlanPortalLink(page: Page) {
+async function openFreshPlanPortalLink(page: Page) {
   await login(page);
-  await page.goto("/clinic/plans/00000000-0000-4000-8000-00000000e101");
+  await page.goto("/clinic/plans/new");
+  await page.getByLabel("Danışan").selectOption({ label: "Synthetic Alpha Client One" });
+  await page.getByLabel("İşlem").selectOption({ label: "Alpha Procedure One" });
+  await page.getByLabel("Şablon").selectOption({ label: "Alpha Template One v1" });
+  await page.getByLabel("Başlangıç tarihi").fill("2026-07-06");
+  await page.getByRole("button", { name: "Plan oluştur" }).click();
+  await expect(page).toHaveURL(/\/clinic\/plans\/[0-9a-f-]+$/);
   await page.getByRole("button", { name: "Güvenli bağlantı oluştur" }).click();
   const link = await page.getByTestId("plain-secure-link").textContent();
   expect(link).toMatch(/\/care\/t\//);
@@ -23,7 +29,7 @@ async function openSeededPlanPortalLink(page: Page) {
 
 test.describe("Phase 9A - durable secure-link rate limiting", () => {
   test("valid secure link still opens a portal session", async ({ page }) => {
-    await openSeededPlanPortalLink(page);
+    await openFreshPlanPortalLink(page);
     await expect(page.getByRole("heading", { name: "Bakım Planınız" })).toBeVisible();
   });
 
