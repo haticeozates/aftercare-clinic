@@ -64,7 +64,14 @@ export const AUDIT_ACTIONS = [
   "alert.acknowledged",
   "alert.resolved",
   "alert.dismissed",
-  "alert.status_change_denied"
+  "alert.status_change_denied",
+  "photo_request.created",
+  "photo_request.cancelled",
+  "photo_upload_intent.created",
+  "photo.uploaded",
+  "photo.upload_denied",
+  "photo.view_access_granted",
+  "photo.view_denied"
 ] as const;
 
 export const AUDIT_ENTITY_TYPES = [
@@ -89,7 +96,10 @@ export const AUDIT_ENTITY_TYPES = [
   "symptom_report",
   "symptom_report_item",
   "alert",
-  "alert_event"
+  "alert_event",
+  "photo_request",
+  "photo_upload_intent",
+  "photo_record"
 ] as const;
 export const AUDIT_RESULTS = ["success", "failure", "denied"] as const;
 export const AUDIT_ACTOR_TYPES = ["user", "system"] as const;
@@ -125,7 +135,9 @@ const allowedMetadataKeys = new Set([
   "required",
   "selected_option_count",
   "alert_count",
-  "resolution_code"
+  "resolution_code",
+  "mime_type",
+  "size_bytes"
 ]);
 
 export type SafeAuditMetadata = Record<string, string | number | boolean | null>;

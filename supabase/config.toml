@@ -24,4 +24,4 @@ jwt_expiry = 3600
 enable_signup = false
 
 [storage]
-enabled = false
+enabled = true

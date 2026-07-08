@@ -39,8 +39,11 @@ describe("authorization primitives", () => {
       "alert.read",
       "alert.acknowledge",
       "alert.resolve",
-      "alert.dismiss"
+      "alert.dismiss",
+      "photo.read",
+      "photo.view"
     ]);
+    expect(resolveRolePermissions("staff")).not.toContain("photo.request.manage");
   });
 
   it("allows active membership for the matching organization only", () => {

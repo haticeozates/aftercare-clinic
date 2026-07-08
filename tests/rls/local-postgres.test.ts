@@ -31,12 +31,13 @@ const foundationTables = [
   "symptom_reports",
   "symptom_report_items",
   "alerts",
-  "alert_events"
+  "alert_events",
+  "photo_requests",
+  "photo_upload_intents",
+  "photo_records"
 ];
 
 const forbiddenFutureTables = [
-  "photo_requests",
-  "photo_records",
   "symptom_checks",
   "consent_records",
   "data_requests",

@@ -34,7 +34,10 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "alert.read",
     "alert.acknowledge",
     "alert.resolve",
-    "alert.dismiss"
+    "alert.dismiss",
+    "photo.read",
+    "photo.request.manage",
+    "photo.view"
   ],
   organization_admin: [
     "organization.read",
@@ -63,7 +66,10 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "alert.read",
     "alert.acknowledge",
     "alert.resolve",
-    "alert.dismiss"
+    "alert.dismiss",
+    "photo.read",
+    "photo.request.manage",
+    "photo.view"
   ],
   staff: [
     "organization.read",
@@ -82,7 +88,9 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "alert.read",
     "alert.acknowledge",
     "alert.resolve",
-    "alert.dismiss"
+    "alert.dismiss",
+    "photo.read",
+    "photo.view"
   ]
 };
 
