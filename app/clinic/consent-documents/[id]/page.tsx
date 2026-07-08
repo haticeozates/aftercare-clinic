@@ -1,9 +1,11 @@
-import { createConsentDraftVersionAction, publishConsentVersionAction } from "@/lib/consent/actions";
+import { ConsentDocumentDetailActions } from "@/components/clinic/consent-document-detail-actions";
+import { ConsentVersionPanel } from "@/components/clinic/consent-version-panel";
 import {
   consentDocumentKindLabel,
   consentVersionStatusLabel,
   getConsentDocumentDetail
 } from "@/lib/consent/service";
+import { consentDocumentStatusLabel } from "@/lib/consent/clinic-ui";
 import { formatDisplayDateTime } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +13,6 @@ export const dynamic = "force-dynamic";
 export default async function ConsentDocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { document, canManage } = await getConsentDocumentDetail(id);
-  const hasDraft = document.versions.some((version) => version.status === "draft");
-  const hasPublished = document.versions.some((version) => version.status === "published");
 
   return (
     <section className="page-section stack">
@@ -22,17 +22,12 @@ export default async function ConsentDocumentDetailPage({ params }: { params: Pr
         <p>
           {consentDocumentKindLabel(document.documentKind)} · {document.code} · {document.purposeKey}
         </p>
-        <span className="badge">{document.status === "active" ? "Aktif" : "Pasif"}</span>
+        <span className="badge">{consentDocumentStatusLabel(document.status)}</span>
+        <span className="badge">{document.versionCount} versiyon</span>
+        <span className="badge">Güncellendi: {formatDisplayDateTime(document.updatedAt)}</span>
       </div>
 
-      {canManage && hasPublished ? (
-        <form action={createConsentDraftVersionAction}>
-          <input type="hidden" name="documentId" value={document.id} />
-          <button className="button secondary" type="submit" disabled={hasDraft}>
-            Yeni versiyon başlat
-          </button>
-        </form>
-      ) : null}
+      <ConsentDocumentDetailActions document={document} canManage={canManage} />
 
       <div className="panel stack">
         <div className="section-header">
@@ -43,24 +38,22 @@ export default async function ConsentDocumentDetailPage({ params }: { params: Pr
         </div>
         <div className="card-list">
           {document.versions.map((version) => (
-            <article className="item-card" key={version.id}>
-              <div>
-                <h2>
-                  v{version.versionNumber} · {version.titleSnapshot}
-                </h2>
-                <p>{version.summaryText ?? "Özet eklenmedi."}</p>
+            <div key={version.id} className="stack">
+              <div className="row-between">
                 <span className="badge">{consentVersionStatusLabel(version.status)}</span>
-                <span className="badge">{formatDisplayDateTime(version.publishedAt ?? version.createdAt)}</span>
+                <span className="badge">
+                  {version.status === "published" && version.publishedAt
+                    ? `Yayınlandı: ${formatDisplayDateTime(version.publishedAt)}`
+                    : `Oluşturuldu: ${formatDisplayDateTime(version.createdAt)}`}
+                </span>
               </div>
-              {canManage && version.status === "draft" ? (
-                <form action={publishConsentVersionAction}>
-                  <input type="hidden" name="versionId" value={version.id} />
-                  <button className="button" type="submit">
-                    Yayınla
-                  </button>
-                </form>
-              ) : null}
-            </article>
+              <ConsentVersionPanel
+                version={version}
+                documentId={document.id}
+                documentStatus={document.status}
+                canManage={canManage}
+              />
+            </div>
           ))}
         </div>
       </div>

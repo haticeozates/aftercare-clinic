@@ -315,15 +315,45 @@ Also check:
 - Audit metadata does not contain body text, free text, PII, tokens, session hashes or storage keys.
 - Generated files, `.next`, test results and cache files are not committed.
 
+## Phase 8.3A Status — Completed
+
+Phase 8.3A clinic consent document management correction is complete on branch `phase-8-3a-cursor-correction`.
+
+Delivered:
+
+- Clinic list/detail UI with inline create form (Phase 8.1 compatible heading and fields).
+- Draft editor, semantic publish confirmation dialog, archive confirmation, readonly published viewer and version history.
+- Owner/admin manage controls; staff read-only visibility; cross-tenant detail redirect.
+- Service/action safe error mapping; no published-version mutation path.
+- Unit/component tests (`test:clinic-consent`) and browser E2E (`phase8-clinic-consent-management.spec.ts`).
+- Phase 8.1/8.2 regression coverage retained in `test:e2e:phase8`.
+
+Key commits in this correction series:
+
+- `08612e5` — security gap tests
+- `b85bdc3` — RPC authorization hardening
+- `251e3c4` — service/action contract restoration
+- Stage 3 UI/tests/docs commits on this branch (see git log)
+
+Verification targets:
+
+```bash
+npm run test:clinic-consent
+npm run test:e2e:phase8
+npm run verify:phase8
+```
+
 ## Next Phase
 
-### Faz 8.3: Clinic Consent and Data Request Workflow
+### Faz 8.3B: Clinic Assignment and Data Request Review
 
 Expected direction:
 
-- Clinic data request review, assignment and status management.
-- Clinic document management UI improvements.
+- Client document assignment clinic workflows.
+- Data request clinic review and staff assignment handling.
 - Controlled staff/owner/admin workflows.
 - No automatic export/delete.
 - No legal-compliance claims.
 - No appointment module or public landing page unless explicitly requested later.
+
+Phase 8 overall is not fully closed until 8.3B completes.

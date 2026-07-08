@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganizationPermission } from "@/lib/auth/server";
 import { hasPermission } from "@/lib/authorization";
-import { writeAuditEvent } from "@/lib/audit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { mapConsentDatabaseError, parseConsentDocumentInput, parseConsentVersionInput } from "@/lib/consent";
+import { parseConsentVersionInput } from "@/lib/consent";
+import { parseCreateConsentDocumentInput } from "@/lib/consent/clinic-contracts";
+import * as clinicConsentService from "@/lib/consent/clinic-service";
 
 export interface ConsentDocumentListItem {
   id: string;
@@ -17,6 +18,9 @@ export interface ConsentDocumentListItem {
   status: "active" | "inactive" | "archived";
   versionCount: number;
   latestVersionStatus: "draft" | "published" | "retired" | null;
+  hasActiveDraft: boolean;
+  latestPublishedVersionNumber: number | null;
+  updatedAt: string;
 }
 
 export interface ConsentVersionItem {
@@ -25,8 +29,10 @@ export interface ConsentVersionItem {
   status: "draft" | "published" | "retired";
   titleSnapshot: string;
   summaryText: string | null;
+  bodyText: string | null;
   publishedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface ConsentDocumentDetail extends ConsentDocumentListItem {
@@ -40,6 +46,7 @@ type DocumentRow = {
   document_kind: "notice" | "consent";
   purpose_key: string;
   status: "active" | "inactive" | "archived";
+  updated_at: string;
 };
 
 type VersionRow = {
@@ -49,19 +56,50 @@ type VersionRow = {
   status: "draft" | "published" | "retired";
   title_snapshot: string;
   summary_text: string | null;
+  body_text: string | null;
   published_at: string | null;
   created_at: string;
+  updated_at: string;
 };
 
-function toVersion(row: VersionRow): ConsentVersionItem {
+function toVersion(row: VersionRow, includeBody = false): ConsentVersionItem {
   return {
     id: row.id,
     versionNumber: row.version_number,
     status: row.status,
     titleSnapshot: row.title_snapshot,
     summaryText: row.summary_text,
+    bodyText: includeBody ? row.body_text : null,
     publishedAt: row.published_at,
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapDocumentListItem(document: DocumentRow, documentVersions: VersionRow[]): ConsentDocumentListItem {
+  const publishedVersions = documentVersions.filter(
+    (version) => version.status === "published" || version.status === "retired"
+  );
+  const latestVersionUpdatedAt = documentVersions.reduce<string | null>((latest, version) => {
+    if (!latest || version.updated_at > latest) {
+      return version.updated_at;
+    }
+    return latest;
+  }, null);
+
+  return {
+    id: document.id,
+    code: document.code,
+    title: document.title,
+    documentKind: document.document_kind,
+    purposeKey: document.purpose_key,
+    status: document.status,
+    versionCount: documentVersions.length,
+    latestVersionStatus: documentVersions[0]?.status ?? null,
+    hasActiveDraft: documentVersions.some((version) => version.status === "draft"),
+    latestPublishedVersionNumber:
+      publishedVersions.length > 0 ? Math.max(...publishedVersions.map((version) => version.version_number)) : null,
+    updatedAt: latestVersionUpdatedAt && latestVersionUpdatedAt > document.updated_at ? latestVersionUpdatedAt : document.updated_at
   };
 }
 
@@ -88,13 +126,15 @@ export async function listConsentDocuments() {
   const [documents, versions] = await Promise.all([
     supabase
       .from("consent_documents")
-      .select("id,code,title,document_kind,purpose_key,status")
+      .select("id,code,title,document_kind,purpose_key,status,updated_at")
       .eq("organization_id", context.organization.id)
       .order("created_at", { ascending: false })
       .returns<DocumentRow[]>(),
     supabase
       .from("consent_document_versions")
-      .select("id,consent_document_id,version_number,status,title_snapshot,summary_text,published_at,created_at")
+      .select(
+        "id,consent_document_id,version_number,status,title_snapshot,summary_text,published_at,created_at,updated_at"
+      )
       .eq("organization_id", context.organization.id)
       .order("version_number", { ascending: false })
       .returns<VersionRow[]>()
@@ -107,16 +147,7 @@ export async function listConsentDocuments() {
   return {
     documents: documents.data.map((document) => {
       const documentVersions = versions.data.filter((version) => version.consent_document_id === document.id);
-      return {
-        id: document.id,
-        code: document.code,
-        title: document.title,
-        documentKind: document.document_kind,
-        purposeKey: document.purpose_key,
-        status: document.status,
-        versionCount: documentVersions.length,
-        latestVersionStatus: documentVersions[0]?.status ?? null
-      };
+      return mapDocumentListItem(document, documentVersions);
     }),
     canManage: hasPermission(context.membership, "consent.manage")
   };
@@ -127,7 +158,7 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("consent_documents")
-    .select("id,code,title,document_kind,purpose_key,status")
+    .select("id,code,title,document_kind,purpose_key,status,updated_at")
     .eq("organization_id", context.organization.id)
     .eq("id", id)
     .maybeSingle<DocumentRow>();
@@ -138,7 +169,9 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
 
   const { data: versions, error: versionsError } = await supabase
     .from("consent_document_versions")
-    .select("id,consent_document_id,version_number,status,title_snapshot,summary_text,published_at,created_at")
+    .select(
+      "id,consent_document_id,version_number,status,title_snapshot,summary_text,body_text,published_at,created_at,updated_at"
+    )
     .eq("organization_id", context.organization.id)
     .eq("consent_document_id", id)
     .order("version_number", { ascending: false })
@@ -150,15 +183,8 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
 
   return {
     document: {
-      id: data.id,
-      code: data.code,
-      title: data.title,
-      documentKind: data.document_kind,
-      purposeKey: data.purpose_key,
-      status: data.status,
-      versionCount: versions.length,
-      latestVersionStatus: versions[0]?.status ?? null,
-      versions: versions.map(toVersion)
+      ...mapDocumentListItem(data, versions),
+      versions: versions.map((version) => toVersion(version, true))
     },
     canManage: hasPermission(context.membership, "consent.manage")
   };
@@ -166,110 +192,54 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
 
 export async function createConsentDocumentFromForm(formData: FormData) {
   const context = await requireOrganizationPermission("consent.manage");
-  const documentInput = parseConsentDocumentInput({
+  const input = parseCreateConsentDocumentInput({
     code: String(formData.get("code") ?? ""),
     title: String(formData.get("title") ?? ""),
     documentKind: String(formData.get("documentKind") ?? ""),
-    purposeKey: String(formData.get("purposeKey") ?? "")
+    purposeKey: String(formData.get("purposeKey") ?? ""),
+    titleSnapshot: String(formData.get("titleSnapshot") ?? formData.get("initialDraftTitle") ?? ""),
+    summaryText: String(formData.get("summaryText") ?? formData.get("initialDraftSummary") ?? ""),
+    bodyText: String(formData.get("bodyText") ?? formData.get("initialDraftBody") ?? "")
   });
+
+  const documentId = await clinicConsentService.createConsentDocument(context.organization.id, input);
+  revalidatePath("/clinic/consent-documents");
+  return documentId;
+}
+
+export async function updateConsentDraftVersion(versionId: string, formData: FormData) {
+  await requireOrganizationPermission("consent.manage");
   const versionInput = parseConsentVersionInput({
     titleSnapshot: String(formData.get("titleSnapshot") ?? ""),
     summaryText: String(formData.get("summaryText") ?? ""),
     bodyText: String(formData.get("bodyText") ?? "")
   });
-  const supabase = await createServerSupabaseClient();
-  const { data: document, error: documentError } = await supabase
-    .from("consent_documents")
-    .insert({
-      organization_id: context.organization.id,
-      code: documentInput.code,
-      title: documentInput.title,
-      document_kind: documentInput.documentKind,
-      purpose_key: documentInput.purposeKey,
-      status: "active",
-      created_by_user_id: context.user.id
-    })
-    .select("id")
-    .single<{ id: string }>();
+  const documentId = String(formData.get("documentId") ?? "");
 
-  if (documentError || !document) {
-    throw new Error(mapConsentDatabaseError(documentError));
-  }
-
-  const { error: versionError } = await supabase.from("consent_document_versions").insert({
-    organization_id: context.organization.id,
-    consent_document_id: document.id,
-    version_number: 1,
-    status: "draft",
-    title_snapshot: versionInput.titleSnapshot,
-    body_text: versionInput.bodyText,
-    summary_text: versionInput.summaryText,
-    created_by_user_id: context.user.id
-  });
-
-  if (versionError) {
-    throw new Error(mapConsentDatabaseError(versionError));
-  }
-
-  await writeAuditEvent({
-    organizationId: context.organization.id,
-    actorType: "user",
-    actorUserId: context.user.id,
-    action: "consent_document.created",
-    entityType: "consent_document",
-    entityId: document.id,
-    result: "success",
-    safeMetadata: { document_kind: documentInput.documentKind, source: "server_action" }
-  });
+  await clinicConsentService.updateConsentDraftVersion(versionId, versionInput);
 
   revalidatePath("/clinic/consent-documents");
-  return document.id;
+  if (documentId) {
+    revalidatePath(`/clinic/consent-documents/${documentId}`);
+  }
 }
 
 export async function publishConsentVersion(versionId: string) {
   await requireOrganizationPermission("consent.manage");
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.rpc("publish_consent_document_version", {
-    target_version_id: versionId
-  });
-
-  if (error || (data as { error?: string } | null)?.error) {
-    throw new Error(mapConsentDatabaseError(error ?? { message: (data as { error?: string } | null)?.error }));
-  }
-
+  await clinicConsentService.publishConsentVersion(versionId);
   revalidatePath("/clinic/consent-documents");
+  revalidatePath("/clinic/consent-documents", "layout");
 }
 
 export async function createDraftFromLatestVersion(documentId: string) {
   const context = await requireOrganizationPermission("consent.manage");
-  const supabase = await createServerSupabaseClient();
-  const { data: latest, error } = await supabase
-    .from("consent_document_versions")
-    .select("version_number,title_snapshot,body_text,summary_text")
-    .eq("organization_id", context.organization.id)
-    .eq("consent_document_id", documentId)
-    .order("version_number", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ version_number: number; title_snapshot: string; body_text: string; summary_text: string | null }>();
+  await clinicConsentService.createDraftFromLatestVersion(context.organization.id, documentId);
+  revalidatePath(`/clinic/consent-documents/${documentId}`);
+}
 
-  if (error || !latest) {
-    throw new Error("Yeni taslak oluşturulamadı.");
-  }
-
-  const { error: insertError } = await supabase.from("consent_document_versions").insert({
-    organization_id: context.organization.id,
-    consent_document_id: documentId,
-    version_number: latest.version_number + 1,
-    status: "draft",
-    title_snapshot: latest.title_snapshot,
-    body_text: latest.body_text,
-    summary_text: latest.summary_text,
-    created_by_user_id: context.user.id
-  });
-
-  if (insertError) {
-    throw new Error(mapConsentDatabaseError(insertError));
-  }
-
+export async function archiveConsentDocument(documentId: string) {
+  await requireOrganizationPermission("consent.manage");
+  await clinicConsentService.archiveConsentDocument(documentId);
+  revalidatePath("/clinic/consent-documents");
   revalidatePath(`/clinic/consent-documents/${documentId}`);
 }
