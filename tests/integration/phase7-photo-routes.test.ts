@@ -38,4 +38,19 @@ describe("phase 7 photo upload route contracts", () => {
     expect(source).not.toContain('.from("care_plans")');
     expect(source).not.toContain('.from("photo_upload_intents")');
   });
+
+  it("protects the internal photo cleanup route with Node runtime and no-store responses", () => {
+    const source = routeSource("app/internal/jobs/photo-cleanup/route.ts");
+
+    expect(source).toContain('export const runtime = "nodejs"');
+    expect(source).toContain('export const dynamic = "force-dynamic"');
+    expect(source).toContain('"Cache-Control": "no-store"');
+    expect(source).toContain("timingSafeEqual");
+    expect(source).toContain("PHOTO_CLEANUP_SECRET");
+    expect(source).toContain("export async function POST");
+    expect(source).not.toContain("export async function GET");
+    expect(source).not.toContain("searchParams");
+    expect(source).not.toContain("final_object_key");
+    expect(source).not.toContain("incoming_object_key");
+  });
 });

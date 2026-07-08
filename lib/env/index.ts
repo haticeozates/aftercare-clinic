@@ -14,6 +14,7 @@ const serverEnvSchema = z
       .refine((value) => !value.startsWith("NEXT_PUBLIC"), {
         message: "SUPABASE_SERVICE_ROLE_KEY must never be public"
       }),
+    PHOTO_CLEANUP_SECRET: z.string().min(16).optional(),
     SUPABASE_PROJECT_REF: z.string().min(1),
     AUDIT_LOG_PEPPER: z.string().min(1),
     PRODUCTION_SUPABASE_PROJECT_REF: z.string().min(1).optional()

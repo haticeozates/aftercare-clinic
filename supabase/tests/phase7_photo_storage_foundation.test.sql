@@ -38,6 +38,25 @@ select has_function(
   array['uuid', 'uuid'],
   '4b. authorize_photo_view_for_staff function exists'
 );
+select has_table('public', 'photo_cleanup_locks', '4c. photo_cleanup_locks table exists for server job locking');
+select has_function(
+  'public',
+  'acquire_photo_cleanup_lock',
+  array['text', 'timestamp with time zone'],
+  '4d. acquire_photo_cleanup_lock function exists'
+);
+select has_function(
+  'public',
+  'release_photo_cleanup_lock',
+  array['uuid'],
+  '4e. release_photo_cleanup_lock function exists'
+);
+select has_function(
+  'public',
+  'classify_photo_cleanup_candidate',
+  array['text', 'text', 'timestamp with time zone'],
+  '4f. classify_photo_cleanup_candidate function exists'
+);
 
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_requests'::regclass), '5. photo_requests RLS is enabled');
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_upload_intents'::regclass), '6. photo_upload_intents RLS is enabled');
@@ -97,6 +116,62 @@ select is(
   ),
   0,
   '7.7. PUBLIC execute is not granted on photo upload RPCs'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('acquire_photo_cleanup_lock', 'release_photo_cleanup_lock', 'classify_photo_cleanup_candidate')
+      and p.prosecdef
+      and p.proconfig @> array['search_path=public, pg_temp']
+    having count(*) = 3
+  ),
+  '7.8. Photo cleanup RPCs are SECURITY DEFINER with explicit search_path'
+);
+
+select is(
+  (
+    select count(*)::int
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('acquire_photo_cleanup_lock', 'release_photo_cleanup_lock', 'classify_photo_cleanup_candidate')
+      and coalesce(p.proacl::text, '') like '{=X/%'
+  ),
+  0,
+  '7.9. PUBLIC execute is not granted on photo cleanup RPCs'
+);
+
+select is(
+  (
+    select count(*)::int
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('acquire_photo_cleanup_lock', 'release_photo_cleanup_lock', 'classify_photo_cleanup_candidate')
+      and coalesce(p.proacl::text, '') like '%service_role%'
+  ),
+  3,
+  '7.10. service_role can execute the narrow cleanup RPCs'
+);
+
+select is(
+  (
+    select public.acquire_photo_cleanup_lock('phase7-test', now() + interval '10 minutes')->>'status'
+  ),
+  'acquired',
+  '7.11. First cleanup job acquires the lock'
+);
+
+select is(
+  (
+    select public.acquire_photo_cleanup_lock('phase7-test', now() + interval '10 minutes')->>'status'
+  ),
+  'already_running',
+  '7.12. Second cleanup job sees already_running'
 );
 
 select is(
@@ -295,6 +370,17 @@ select is(
   (select status from public.photo_upload_intents where id = '00000000-0000-4000-8000-000000007111'),
   'consumed',
   '16.6. Finalized upload intent is consumed'
+);
+select is(
+  (
+    select public.classify_photo_cleanup_candidate(
+      'final',
+      (select final_object_key from public.photo_records where photo_request_id = '00000000-0000-4000-8000-000000007101'),
+      now() - interval '2 days'
+    )->>'reason'
+  ),
+  'referenced_record',
+  '16.6b. Referenced final object is not a cleanup candidate'
 );
 select is(
   (public.record_finalized_photo_for_portal(
