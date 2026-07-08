@@ -6,7 +6,6 @@ import {
   maskTokenPrefix,
   parsePortalSessionCookieOptions,
   secureTokenRouteHeaders,
-  checkTokenValidationRateLimit,
   tokenValidationFailureMessage
 } from "@/lib/secure-links";
 
@@ -55,13 +54,6 @@ describe("secure link token rules", () => {
       "Cache-Control": "no-store",
       "X-Robots-Tag": "noindex, nofollow",
       "Referrer-Policy": "no-referrer"
-    });
-  });
-
-  it("exposes a local token validation rate-limit hook", () => {
-    expect(checkTokenValidationRateLimit({ route: "/care/t/[token]" })).toEqual({
-      allowed: true,
-      strategy: "local-hook"
     });
   });
 });

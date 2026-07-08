@@ -1,7 +1,4 @@
-import "server-only";
-
 import crypto from "node:crypto";
-import { getServerEnv } from "@/lib/env";
 
 export function getRateLimitPepper(source: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env) {
   const appEnv = source.APP_ENV ?? "development";

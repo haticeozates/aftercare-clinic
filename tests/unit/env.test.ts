@@ -50,4 +50,14 @@ describe("environment validation", () => {
     expect(() => parseServerEnv(env)).toThrow(/AUDIT_LOG_PEPPER/);
     expect(JSON.stringify(getPublicEnv(baseEnv))).not.toContain("pepper");
   });
+
+  it("does not expose rate-limit pepper through public environment output", () => {
+    const publicEnv = getPublicEnv({
+      ...baseEnv,
+      RATE_LIMIT_PEPPER: "secret-rate-limit-pepper"
+    });
+
+    expect(JSON.stringify(publicEnv)).not.toContain("rate-limit");
+    expect(JSON.stringify(publicEnv)).not.toContain("secret-rate-limit-pepper");
+  });
 });
