@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { checkPortalTaskMutationRateLimit } from "@/lib/portal";
-import { checkTokenValidationRateLimit } from "@/lib/secure-links";
 import {
   ProcessLocalRateLimitStore,
   RaceProneProcessLocalRateLimitStore
@@ -48,20 +46,6 @@ describe("phase 9a process-local rate-limit gaps", () => {
 
     const allowedCount = results.filter((result) => result.allowed).length;
     expect(allowedCount).toBeGreaterThan(threshold);
-  });
-
-  it("leaves security-critical token validation unlimited via the current local hook", () => {
-    expect(checkTokenValidationRateLimit({ route: "/care/t/[token]" })).toEqual({
-      allowed: true,
-      strategy: "local-hook"
-    });
-  });
-
-  it("leaves portal task mutation unlimited via the current local hook", () => {
-    expect(checkPortalTaskMutationRateLimit({ route: "/care/session/tasks" })).toEqual({
-      allowed: true,
-      strategy: "local-hook"
-    });
   });
 
   it("does not reset windows across separate process-local instances", () => {

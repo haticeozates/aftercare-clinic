@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import { checkPortalTaskMutationRateLimit } from "@/lib/portal";
 import { updatePortalTaskStatus } from "@/lib/portal/service";
+import {
+  buildRateLimitedPortalJsonResponse,
+  buildStoreUnavailablePortalJsonResponse
+} from "@/lib/rate-limit/responses";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const rateLimit = checkPortalTaskMutationRateLimit({ route: "/care/session/tasks" });
+  const rateLimit = await checkPortalTaskMutationRateLimit(request);
   if (!rateLimit.allowed) {
-    return NextResponse.json({ error: "İşlem tamamlanamadı." }, { status: 429 });
+    if (rateLimit.reason === "store_unavailable") {
+      return buildStoreUnavailablePortalJsonResponse();
+    }
+
+    return buildRateLimitedPortalJsonResponse(rateLimit);
   }
 
   const body = (await request.json().catch(() => null)) as { taskId?: string; status?: string } | null;
