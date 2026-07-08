@@ -62,3 +62,19 @@ EXIF cleanup is not optional before real photos are accepted. Before Phase 7.2 i
 - Write a safe normalized raster output, preferably WebP.
 
 The likely implementation path is a server-side image processing dependency such as `sharp`, subject to runtime compatibility verification for the target deployment environment.
+
+## Phase 7.2 Finalize Contract
+
+Phase 7.2 uses `sharp` only in explicit Next.js Node.js route handlers. Edge runtime is not used for image decoding, metadata stripping or WebP normalization.
+
+Finalize is intentionally split across Storage and Postgres because Supabase Storage writes cannot be part of the same database transaction as `photo_records` insertion. The accepted compensation model is:
+
+- A portal session can create only a short-lived `photo_upload_intents` row for an active request in its own plan.
+- Finalize first claims a pending intent by moving it to `processing` with a random `processing_claim_id`.
+- Only the process holding that claim may write the final `photo_records` row.
+- If a `photo_record` already exists for the request, repeated finalize returns idempotent success.
+- If final Storage write succeeds but database finalize fails, the server must best-effort delete the final object.
+- If database finalize succeeds but incoming delete fails, the user can receive success and the incoming object becomes cleanup-eligible.
+- Orphan incoming/final objects remain private and must be removed by a later cleanup job; no storage path is written to audit metadata.
+
+The browser may receive the Supabase signed upload `path` and `token` once as a short-lived upload credential. These values must not be stored in localStorage, database rows, audit metadata, logs or telemetry, and the final object key must never be returned to the browser.

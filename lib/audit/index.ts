@@ -137,7 +137,12 @@ const allowedMetadataKeys = new Set([
   "alert_count",
   "resolution_code",
   "mime_type",
-  "size_bytes"
+  "size_bytes",
+  "width",
+  "height",
+  "result_reason_code",
+  "retry",
+  "idempotent_result"
 ]);
 
 export type SafeAuditMetadata = Record<string, string | number | boolean | null>;

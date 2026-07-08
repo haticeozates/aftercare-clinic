@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
+import sharp from "sharp";
 import {
   PHOTO_ALLOWED_MIME_TYPES,
   PHOTO_BUCKETS,
+  PHOTO_IMAGE_LIMITS,
   PHOTO_MAX_UPLOAD_BYTES,
   buildOpaquePhotoObjectKey,
+  buildPhotoUploadCredential,
+  createOpaquePhotoObjectKey,
+  inspectAndSanitizePhoto,
+  mapPhotoUploadError,
   sanitizePhotoAuditMetadata,
+  sanitizePhotoCredentialForAudit,
+  finalizePhotoUploadWithAdapters,
   validateDeclaredPhotoUpload
 } from "@/lib/photos";
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES, sanitizeAuditMetadata } from "@/lib/audit";
@@ -91,5 +99,198 @@ describe("photo storage foundation contracts", () => {
       size_bytes: 4096,
       result_reason: "declared_mime_rejected"
     });
+  });
+});
+
+describe("photo upload intent contracts", () => {
+  it("generates unpredictable opaque incoming and final object keys", () => {
+    const incomingKey = createOpaquePhotoObjectKey("incoming");
+    const finalKey = createOpaquePhotoObjectKey("photos");
+
+    expect(incomingKey).toMatch(/^incoming\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(finalKey).toMatch(/^photos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.webp$/);
+    expect(`${incomingKey} ${finalKey}`).not.toMatch(/organization|client|plan|request|phone|email|filename|alpha|beta/i);
+  });
+
+  it("returns a narrow signed upload credential without audit-safe leakage", () => {
+    const credential = buildPhotoUploadCredential({
+      intentId: "00000000-0000-4000-8000-000000007222",
+      path: "incoming/00000000-0000-4000-8000-000000007222",
+      token: "signed-upload-token",
+      expiresAt: "2026-07-08T10:00:00.000Z"
+    });
+
+    expect(credential).toEqual({
+      intentId: "00000000-0000-4000-8000-000000007222",
+      uploadCredential: {
+        path: "incoming/00000000-0000-4000-8000-000000007222",
+        token: "signed-upload-token",
+        expiresAt: "2026-07-08T10:00:00.000Z",
+        maxBytes: PHOTO_MAX_UPLOAD_BYTES,
+        allowedMimeTypes: PHOTO_ALLOWED_MIME_TYPES
+      }
+    });
+
+    expect(
+      sanitizeAuditMetadata(
+        sanitizePhotoCredentialForAudit({
+          ...credential.uploadCredential,
+          finalKey: "photos/00000000-0000-4000-8000-000000007222.webp"
+        })
+      )
+    ).toEqual({});
+  });
+
+  it("maps raw upload errors to allowlisted safe messages", () => {
+    expect(mapPhotoUploadError("unsupported_format")).toBe("Dosya desteklenen bir fotoğraf formatında değil.");
+    expect(mapPhotoUploadError("file_too_large")).toBe("Fotoğraf boyutu izin verilen sınırı aşıyor.");
+    expect(mapPhotoUploadError(new Error("storage path incoming/secret token=abc"))).toBe(
+      "Yükleme tamamlanamadı. Lütfen tekrar deneyin."
+    );
+  });
+});
+
+describe("photo image validation and sanitization", () => {
+  async function tinyPng() {
+    return sharp({
+      create: {
+        width: 1,
+        height: 1,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 0.5 }
+      }
+    })
+      .png()
+      .toBuffer();
+  }
+
+  it("defines strict decoder and output limits", () => {
+    expect(PHOTO_IMAGE_LIMITS).toEqual({
+      maxInputBytes: 5 * 1024 * 1024,
+      maxWidth: 6000,
+      maxHeight: 6000,
+      maxPixels: 16_000_000,
+      maxPages: 1,
+      outputFormat: "image/webp",
+      outputQuality: 82,
+      outputMaxLongEdge: 1600
+    });
+  });
+
+  it("rejects zero-byte and malformed images before creating output", async () => {
+    await expect(inspectAndSanitizePhoto({ bytes: Buffer.alloc(0), declaredMimeType: "image/png" })).resolves.toEqual({
+      ok: false,
+      reason: "empty_file"
+    });
+    await expect(
+      inspectAndSanitizePhoto({ bytes: Buffer.from("not-an-image"), declaredMimeType: "image/png" })
+    ).resolves.toEqual({
+      ok: false,
+      reason: "malformed_image"
+    });
+  });
+
+  it("rejects declared MIME mismatch even when bytes decode as an image", async () => {
+    await expect(inspectAndSanitizePhoto({ bytes: await tinyPng(), declaredMimeType: "image/jpeg" })).resolves.toEqual({
+      ok: false,
+      reason: "mime_mismatch"
+    });
+  });
+
+  it("produces metadata-free WebP output and checksum for valid images", async () => {
+    const result = await inspectAndSanitizePhoto({ bytes: await tinyPng(), declaredMimeType: "image/png" });
+
+    expect(result).toMatchObject({
+      ok: true,
+      verifiedMimeType: "image/webp",
+      width: 1,
+      height: 1
+    });
+    if (result.ok) {
+      expect(result.outputBytes.length).toBeGreaterThan(0);
+      expect(result.checksumSha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(result.metadata).not.toHaveProperty("exif");
+      expect(result.metadata).not.toHaveProperty("iptc");
+      expect(result.metadata).not.toHaveProperty("xmp");
+      expect(result.metadata).not.toHaveProperty("icc");
+    }
+  });
+});
+
+describe("photo finalize compensation", () => {
+  async function validWebpBytes() {
+    return sharp({
+      create: {
+        width: 2,
+        height: 2,
+        channels: 3,
+        background: "#ffffff"
+      }
+    })
+      .jpeg()
+      .toBuffer();
+  }
+
+  it("finalizes a claimed incoming object and deletes incoming after DB success", async () => {
+    const deleted: string[] = [];
+    const finalUploads: string[] = [];
+
+    const result = await finalizePhotoUploadWithAdapters({
+      sessionHash: "session-hash",
+      intentId: "00000000-0000-4000-8000-000000007111",
+      database: {
+        claimIntent: async () => ({
+          status: "processing",
+          claimId: "00000000-0000-4000-8000-000000007333",
+          incomingObjectKey: "incoming/00000000-0000-4000-8000-000000007111",
+          declaredMimeType: "image/jpeg"
+        }),
+        recordFinalized: async () => ({ status: "ready" })
+      },
+      storage: {
+        downloadIncoming: async () => await validWebpBytes(),
+        uploadFinal: async ({ finalObjectKey }) => {
+          finalUploads.push(finalObjectKey);
+          return { ok: true };
+        },
+        deleteObject: async (key) => {
+          deleted.push(key);
+          return { ok: true };
+        }
+      }
+    });
+
+    expect(result).toEqual({ ok: true, status: "ready" });
+    expect(finalUploads[0]).toMatch(/^photos\/[0-9a-f-]+\.webp$/);
+    expect(deleted).toEqual(["incoming/00000000-0000-4000-8000-000000007111"]);
+  });
+
+  it("deletes the final object when DB finalize fails after storage write", async () => {
+    const deleted: string[] = [];
+    const result = await finalizePhotoUploadWithAdapters({
+      sessionHash: "session-hash",
+      intentId: "00000000-0000-4000-8000-000000007111",
+      database: {
+        claimIntent: async () => ({
+          status: "processing",
+          claimId: "00000000-0000-4000-8000-000000007333",
+          incomingObjectKey: "incoming/00000000-0000-4000-8000-000000007111",
+          declaredMimeType: "image/jpeg"
+        }),
+        recordFinalized: async () => ({ error: "db_finalize_failed" })
+      },
+      storage: {
+        downloadIncoming: async () => await validWebpBytes(),
+        uploadFinal: async () => ({ ok: true }),
+        deleteObject: async (key) => {
+          deleted.push(key);
+          return { ok: true };
+        }
+      }
+    });
+
+    expect(result).toEqual({ ok: false, reason: "finalize_failed" });
+    expect(deleted).toHaveLength(1);
+    expect(deleted[0]).toMatch(/^photos\/[0-9a-f-]+\.webp$/);
   });
 });

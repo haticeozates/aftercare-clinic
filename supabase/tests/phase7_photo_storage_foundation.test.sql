@@ -36,6 +36,8 @@ select is((select to_regclass('public.photo_events')), null::regclass, '4. Separ
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_requests'::regclass), '5. photo_requests RLS is enabled');
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_upload_intents'::regclass), '6. photo_upload_intents RLS is enabled');
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_records'::regclass), '7. photo_records RLS is enabled');
+select has_function('public', 'claim_photo_upload_intent_for_portal', array['text', 'uuid'], '7.1. Portal finalize claim RPC exists');
+select has_function('public', 'record_finalized_photo_for_portal', array['text', 'uuid', 'uuid', 'text', 'integer', 'integer', 'integer', 'text'], '7.2. Portal finalized photo recording RPC exists');
 
 select is(
   (select count(*)::int from storage.buckets where id in ('care-photo-incoming', 'care-photos') and public = false),
@@ -143,77 +145,6 @@ values (
   now() + interval '10 minutes'
 );
 
-insert into public.photo_records (
-  id,
-  organization_id,
-  photo_request_id,
-  upload_intent_id,
-  care_plan_id,
-  care_plan_day_id,
-  portal_session_id,
-  final_bucket_id,
-  final_object_key,
-  verified_mime_type,
-  verified_size_bytes,
-  width,
-  height,
-  checksum_sha256,
-  finalized_at
-)
-values (
-  '00000000-0000-4000-8000-000000007121',
-  '00000000-0000-4000-8000-0000000000a1',
-  '00000000-0000-4000-8000-000000007101',
-  '00000000-0000-4000-8000-000000007111',
-  '00000000-0000-4000-8000-00000000e101',
-  '00000000-0000-4000-8000-00000000f101',
-  '00000000-0000-4000-8000-00000000f901',
-  'care-photos',
-  'photos/00000000-0000-4000-8000-000000007121.webp',
-  'image/webp',
-  2048,
-  800,
-  600,
-  repeat('a', 64),
-  now()
-);
-
-prepare duplicate_photo_record as insert into public.photo_records (
-  organization_id,
-  photo_request_id,
-  upload_intent_id,
-  care_plan_id,
-  care_plan_day_id,
-  portal_session_id,
-  final_bucket_id,
-  final_object_key,
-  verified_mime_type,
-  verified_size_bytes,
-  width,
-  height,
-  finalized_at
-) values (
-  '00000000-0000-4000-8000-0000000000a1',
-  '00000000-0000-4000-8000-000000007101',
-  '00000000-0000-4000-8000-000000007111',
-  '00000000-0000-4000-8000-00000000e101',
-  '00000000-0000-4000-8000-00000000f101',
-  '00000000-0000-4000-8000-00000000f901',
-  'care-photos',
-  'photos/00000000-0000-4000-8000-000000007122.webp',
-  'image/webp',
-  1024,
-  400,
-  300,
-  now()
-);
-select throws_ok('duplicate_photo_record', '23505', null, '12. A request can have at most one final photo record');
-
-prepare consumed_intent_update as update public.photo_upload_intents set status = 'consumed', consumed_at = now() where id = '00000000-0000-4000-8000-000000007111';
-select lives_ok('consumed_intent_update', '13. Upload intent can be consumed once through controlled database transition setup');
-prepare consume_again as update public.photo_upload_intents set status = 'consumed' where id = '00000000-0000-4000-8000-000000007111';
-select throws_ok('consume_again', null, null, '14. Consumed upload intent cannot be consumed twice');
-
 prepare cross_plan_intent as insert into public.photo_upload_intents (
   organization_id,
   photo_request_id,
@@ -260,6 +191,90 @@ prepare non_opaque_key as insert into public.photo_upload_intents (
 );
 select throws_ok('non_opaque_key', '23514', null, '16. Incoming storage key must be opaque and cannot embed organization/request data');
 
+select is(
+  (public.claim_photo_upload_intent_for_portal('phase7-session-active', '00000000-0000-4000-8000-000000007111')->>'status'),
+  'processing',
+  '16.1. Valid portal session can atomically claim pending upload intent'
+);
+select is(
+  (select status from public.photo_upload_intents where id = '00000000-0000-4000-8000-000000007111'),
+  'processing',
+  '16.2. Claimed upload intent is marked processing'
+);
+select ok(
+  (select processing_claim_id is not null and processing_started_at is not null from public.photo_upload_intents where id = '00000000-0000-4000-8000-000000007111'),
+  '16.3. Claim stores a processing lease id and timestamp'
+);
+select is(
+  (public.claim_photo_upload_intent_for_portal('phase7-session-active', '00000000-0000-4000-8000-000000007111')->>'error'),
+  'intent is already processing',
+  '16.4. Second process cannot claim the same processing intent'
+);
+select is(
+  (public.record_finalized_photo_for_portal(
+    'phase7-session-active',
+    '00000000-0000-4000-8000-000000007111',
+    (select processing_claim_id from public.photo_upload_intents where id = '00000000-0000-4000-8000-000000007111'),
+    'photos/00000000-0000-4000-8000-000000007199.webp',
+    2048,
+    800,
+    600,
+    repeat('b', 64)
+  )->>'status'),
+  'ready',
+  '16.5. Claimed intent can be finalized into one immutable photo record'
+);
+select is(
+  (select status from public.photo_upload_intents where id = '00000000-0000-4000-8000-000000007111'),
+  'consumed',
+  '16.6. Finalized upload intent is consumed'
+);
+select is(
+  (public.record_finalized_photo_for_portal(
+    'phase7-session-active',
+    '00000000-0000-4000-8000-000000007111',
+    gen_random_uuid(),
+    'photos/00000000-0000-4000-8000-000000007198.webp',
+    2048,
+    800,
+    600,
+    repeat('c', 64)
+  )->>'status'),
+  'already_finalized',
+  '16.7. Repeated finalize returns idempotent success when a record already exists'
+);
+
+prepare duplicate_photo_record as insert into public.photo_records (
+  organization_id,
+  photo_request_id,
+  upload_intent_id,
+  care_plan_id,
+  care_plan_day_id,
+  portal_session_id,
+  final_bucket_id,
+  final_object_key,
+  verified_mime_type,
+  verified_size_bytes,
+  width,
+  height,
+  finalized_at
+) values (
+  '00000000-0000-4000-8000-0000000000a1',
+  '00000000-0000-4000-8000-000000007101',
+  '00000000-0000-4000-8000-000000007111',
+  '00000000-0000-4000-8000-00000000e101',
+  '00000000-0000-4000-8000-00000000f101',
+  '00000000-0000-4000-8000-00000000f901',
+  'care-photos',
+  'photos/00000000-0000-4000-8000-000000007122.webp',
+  'image/webp',
+  1024,
+  400,
+  300,
+  now()
+);
+select throws_ok('duplicate_photo_record', '23505', null, '16.8. A request can have at most one final photo record');
+
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a103');
 select is((select count(*)::int from public.photo_requests where organization_id = '00000000-0000-4000-8000-0000000000a1'), 1, '17. Alpha staff can read Alpha photo requests');
 select is((select count(*)::int from public.photo_requests where organization_id = '00000000-0000-4000-8000-0000000000b1'), 0, '18. Alpha staff cannot read Beta photo requests');
@@ -282,7 +297,23 @@ select throws_ok('anon_insert_record', '42501', null, '25. Anonymous browser can
 
 reset role;
 select is((select public.sanitize_audit_metadata('{"mime_type":"image/webp","size_bytes":2048,"storage_path":"photos/secret.webp","signed_url":"https://example.test","original_filename":"face.jpg","portal_session_hash":"hash","phone":"+905550000000"}'::jsonb)::text), '{"mime_type": "image/webp", "size_bytes": 2048}'::jsonb::text, '26. Audit sanitizer keeps only safe photo metadata');
-select ok((select count(*) from public.audit_logs where action in ('photo_request.created','photo_request.cancelled','photo_upload_intent.created','photo.uploaded','photo.upload_denied','photo.view_access_granted','photo.view_denied')) = 0, '27. Photo audit action contracts are accepted by the database');
+select ok(
+  (
+    select count(*)::int
+    from public.audit_logs
+    where action in ('photo_upload_intent.created', 'photo.uploaded')
+      and organization_id = '00000000-0000-4000-8000-0000000000a1'
+  ) >= 2,
+  '27. Photo upload claim and finalize write accepted audit events'
+);
+select ok(
+  (
+    select coalesce(jsonb_agg(safe_metadata), '[]'::jsonb)::text
+    from public.audit_logs
+    where action in ('photo_upload_intent.created', 'photo.uploaded')
+  ) !~* 'incoming|photos/|signed|token|filename|phone|email|session',
+  '28. Photo audit events do not include path, token, filename, session or PII'
+);
 
 select finish();
 rollback;
