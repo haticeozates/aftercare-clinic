@@ -148,7 +148,7 @@ select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
 select is((public.record_client_document_event('00000000-0000-4000-8000-000000008301', 'notice_acknowledged', 'clinic')->>'status'), 'recorded', '25. Notice acknowledgment event can be recorded');
 select is((select count(*)::int from public.client_document_events where assignment_id = '00000000-0000-4000-8000-000000008301' and event_type = 'notice_acknowledged'), 1, '26. Notice acknowledgment is stored as its own event');
 select is((select count(*)::int from public.client_document_events where assignment_id = '00000000-0000-4000-8000-000000008301' and event_type like 'consent_%'), 0, '27. Notice acknowledgment is not a consent decision');
-select is((public.record_client_document_event('00000000-0000-4000-8000-000000008301', 'consent_accepted', 'clinic')->>'error'), 'event incompatible with document kind', '27b. Consent decision cannot be recorded against a notice document');
+select is((public.record_client_document_event('00000000-0000-4000-8000-000000008301', 'consent_accepted', 'clinic')->>'error'), 'invalid event type', '27b. Clinic consent decision events are not accepted by record_client_document_event');
 reset role;
 
 prepare update_document_event as update public.client_document_events set event_type = 'consent_accepted';

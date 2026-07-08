@@ -1,3 +1,12 @@
+---
+type: Reference
+title: Phase 4 Acceptance Gap Audit
+description: Faz 4.1 acceptance matrix mapped to pgTAP tests in phase4_care_plans_secure_links.test.sql.
+tags: [qa, faz-4, pgTAP]
+timestamp: 2026-07-08T21:31:00Z
+okf_version: "0.1"
+---
+
 # Phase 4 Acceptance Gap Audit
 
 Scope: Faz 4.1 audit for commit `39b99f6` plus acceptance-gap tests only. No Faz 5 feature is included.

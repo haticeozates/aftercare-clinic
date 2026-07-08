@@ -91,11 +91,11 @@ test("admin progresses a data request while staff cannot manage it", async ({ pa
 
   await login(page, "alpha-admin@example.test");
   await page.goto("/clinic/data-requests");
-  const requestCard = page.locator(`article:has(form[data-request-id="${requestId}"])`);
+  const requestCard = page.locator(`article:has(input[name="dataRequestId"][value="${requestId}"])`);
   await expect(requestCard.getByText("Erişim talebi")).toBeVisible();
   await requestCard.getByLabel("Yeni durum").selectOption("under_review");
   await requestCard.getByRole("button", { name: "Durumu güncelle" }).click();
-  await expect(requestCard.getByText("İncelemede")).toBeVisible();
+  await expect(requestCard.locator(".badge", { hasText: "İncelemede" })).toBeVisible();
 
   await page.getByRole("button", { name: "Çıkış yap" }).click();
   await login(page, "alpha-staff@example.test");

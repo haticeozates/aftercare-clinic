@@ -4,7 +4,7 @@ Production-oriented foundation for AfterCare Clinic. This project is intentional
 
 ## Current Scope
 
-Included through Faz 8.2:
+Included through Faz 8.3B:
 
 - Next.js App Router + TypeScript foundation
 - Local Supabase/Postgres development workflow
@@ -30,6 +30,9 @@ Included through Faz 8.2:
 - Notice acknowledgment and consent decision event history
 - Portal document decisions for assigned published document versions
 - Portal data request submission as a review workflow record
+- Clinic consent document management (draft, publish, retire, archive)
+- Clinic client document assignment create/cancel with portal visibility boundaries
+- Clinic data request review with staff assignee assignment and event history
 - Synthetic local/test seed and deterministic test fixtures
 
 ## Explicitly Out Of Scope

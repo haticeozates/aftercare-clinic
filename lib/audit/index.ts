@@ -81,6 +81,7 @@ export const AUDIT_ACTIONS = [
   "consent_version.updated",
   "consent_version.published",
   "consent_assignment.created",
+  "consent_assignment.cancelled",
   "consent.event_recorded",
   "data_request.created",
   "data_request.status_changed",

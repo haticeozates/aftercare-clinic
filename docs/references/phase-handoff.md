@@ -1,6 +1,15 @@
+---
+type: Reference
+title: Phase Handoff
+description: Practical continuation map — built phases, hard boundaries, verification habits, and next-phase direction.
+tags: [reference, phases, handoff]
+timestamp: 2026-07-08T21:43:00Z
+okf_version: "0.1"
+---
+
 # AfterCare Clinic Phase Handoff
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 This document is the practical continuation map for the production project. It records what has been built, what is intentionally excluded, and where the next phase should continue.
 
@@ -8,7 +17,7 @@ This document is the practical continuation map for the production project. It r
 
 - Repository: `https://github.com/haticeozates/aftercare-clinic.git`
 - Branch: `main`
-- Current functional scope: Faz 0 through Faz 8.2
+- Current functional scope: Faz 0 through Faz 8.3B
 - Latest exact commit should be verified with `git log --oneline -5` before starting new work.
 - `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and `.env.example`.
 
@@ -315,9 +324,9 @@ Also check:
 - Audit metadata does not contain body text, free text, PII, tokens, session hashes or storage keys.
 - Generated files, `.next`, test results and cache files are not committed.
 
-## Phase 8.3A Status — Completed
+## Phase 8.3A — Completed
 
-Phase 8.3A clinic consent document management correction is complete on branch `phase-8-3a-cursor-correction`.
+Clinic consent document management correction is complete.
 
 Delivered:
 
@@ -328,14 +337,7 @@ Delivered:
 - Unit/component tests (`test:clinic-consent`) and browser E2E (`phase8-clinic-consent-management.spec.ts`).
 - Phase 8.1/8.2 regression coverage retained in `test:e2e:phase8`.
 
-Key commits in this correction series:
-
-- `08612e5` — security gap tests
-- `b85bdc3` — RPC authorization hardening
-- `251e3c4` — service/action contract restoration
-- Stage 3 UI/tests/docs commits on this branch (see git log)
-
-Verification targets:
+Verification:
 
 ```bash
 npm run test:clinic-consent
@@ -343,17 +345,46 @@ npm run test:e2e:phase8
 npm run verify:phase8
 ```
 
+## Phase 8.3B — Completed
+
+Clinic assignment and data request review is complete, including the controlled correction pass (`20260706082300_phase8_3b_security_and_workflow_corrections.sql`).
+
+Delivered:
+
+- Clinic client document assignment create/cancel/history on `app/clinic/clients/[id]/page.tsx` only (not care plan detail page).
+- Owner/admin manage; staff read-only for assignments.
+- Cancellation history shows timestamp and safe actor display name (no raw user IDs in browser DTOs).
+- Data request review UI with staff assignee picker and append-only event history.
+- Narrow `assign_data_request` RPC for assignee-only mutations without browser-supplied status.
+- Tenant-safe data request transitions: cross-tenant IDs return generic `not found` without foreign denied audits.
+- Server-side terminal resolution codes: `manual_review_completed`, `manual_review_declined`, `manual_review_cancelled`.
+- Clinic `record_client_document_event` accepts only `source = clinic` (portal/system spoof denied).
+- Migrations `20260706082200_phase8_3b_clinic_assignment_and_data_request_review.sql` and `20260706082300_phase8_3b_security_and_workflow_corrections.sql`.
+- pgTAP: `phase8_3b_clinic_assignment_and_data_request_review.test.sql`, `phase8_3b_security_and_workflow_corrections.test.sql`.
+- E2E: `phase8-clinic-consent-assignment.spec.ts`, `phase8-clinic-data-request-review.spec.ts`.
+
+Archived portal boundary:
+
+- Portal does not show archived-document assignments (pending or completed) in 8.3B.
+- Clinic history retains all assignment states.
+- `get_portal_document_assignments` was not extended for archived completed records.
+
+Verification:
+
+```bash
+npm run test:clinic-assignment
+npm run test:data-requests
+npm run test:e2e:phase8
+npm run verify:phase8
+```
+
 ## Next Phase
 
-### Faz 8.3B: Clinic Assignment and Data Request Review
+Phase 8 may continue with follow-up work outside the completed 8.3B boundary. **Faz 8.3C is referenced in planning notes but has no authoritative scope definition in this repository yet** — do not treat it as completed or in-progress without an explicit product decision.
 
-Expected direction:
+Before starting new work:
 
-- Client document assignment clinic workflows.
-- Data request clinic review and staff assignment handling.
-- Controlled staff/owner/admin workflows.
-- No automatic export/delete.
-- No legal-compliance claims.
-- No appointment module or public landing page unless explicitly requested later.
-
-Phase 8 overall is not fully closed until 8.3B completes.
+- Verify latest commit with `git log --oneline -5`.
+- Run `npm run verify:phase8`.
+- Do not add appointment scheduling, public landing page, or legal-compliance claims unless explicitly requested.
+- Do not connect to remote/production Supabase or deploy from this repository.
