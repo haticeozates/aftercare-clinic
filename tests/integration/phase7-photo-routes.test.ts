@@ -19,6 +19,16 @@ describe("phase 7 photo upload route contracts", () => {
     expect(routeSource("app/care/session/photos/finalize/route.ts")).toContain('export const dynamic = "force-dynamic"');
   });
 
+  it("uses Node.js runtime and no-store cache for clinic photo view URL route", () => {
+    const source = routeSource("app/clinic/photos/[photoRecordId]/view-url/route.ts");
+
+    expect(source).toContain('export const runtime = "nodejs"');
+    expect(source).toContain('export const dynamic = "force-dynamic"');
+    expect(source).toContain('"Cache-Control": "no-store"');
+    expect(source).not.toContain("final_object_key");
+    expect(source).not.toContain("care-photos");
+  });
+
   it("keeps portal photo intent authorization behind the narrow RPC", () => {
     const source = routeSource("lib/photos/service.ts");
 

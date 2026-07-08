@@ -46,6 +46,20 @@ export function createPhotoStorageAdapter(supabase: ReturnType<typeof import("@/
       return { ok: true as const };
     },
 
+    async createSignedFinalViewUrl(input: { finalObjectKey: string; expiresInSeconds: number }) {
+      const { data, error } = await supabase.storage
+        .from(PHOTO_BUCKETS.final)
+        .createSignedUrl(input.finalObjectKey, input.expiresInSeconds);
+
+      if (error || !data?.signedUrl) {
+        return null;
+      }
+
+      return {
+        signedUrl: data.signedUrl
+      };
+    },
+
     async deleteObject(key: string) {
       const bucket = key.startsWith("incoming/") ? PHOTO_BUCKETS.incoming : PHOTO_BUCKETS.final;
       const { error } = await supabase.storage.from(bucket).remove([key]);

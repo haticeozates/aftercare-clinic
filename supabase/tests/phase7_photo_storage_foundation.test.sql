@@ -32,6 +32,12 @@ select has_table('public', 'photo_requests', '1. photo_requests table exists');
 select has_table('public', 'photo_upload_intents', '2. photo_upload_intents table exists');
 select has_table('public', 'photo_records', '3. photo_records table exists');
 select is((select to_regclass('public.photo_events')), null::regclass, '4. Separate photo_events table is not created');
+select has_function(
+  'public',
+  'authorize_photo_view_for_staff',
+  array['uuid', 'uuid'],
+  '4b. authorize_photo_view_for_staff function exists'
+);
 
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_requests'::regclass), '5. photo_requests RLS is enabled');
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_upload_intents'::regclass), '6. photo_upload_intents RLS is enabled');
@@ -366,6 +372,40 @@ select ok(
       and organization_id = '00000000-0000-4000-8000-0000000000a1'
   ) >= 2,
   '27. Photo upload claim and finalize write accepted audit events'
+);
+select ok(
+  (
+    select proconfig::text
+    from pg_proc
+    where oid = 'public.authorize_photo_view_for_staff(uuid,uuid)'::regprocedure
+  ) like '%search_path=public, pg_temp%',
+  '27b. Photo view authorization RPC has explicit search_path'
+);
+select ok(
+  not has_function_privilege('public', 'public.authorize_photo_view_for_staff(uuid,uuid)', 'execute'),
+  '27c. PUBLIC cannot execute photo view authorization RPC'
+);
+select ok(
+  has_function_privilege('service_role', 'public.authorize_photo_view_for_staff(uuid,uuid)', 'execute'),
+  '27d. service_role can execute narrow photo view authorization RPC'
+);
+select ok(
+  (
+    select public.authorize_photo_view_for_staff(
+      '00000000-0000-4000-8000-00000000a102',
+      (select id from public.photo_records where photo_request_id = '00000000-0000-4000-8000-000000007101')
+    )->>'status'
+  ) = 'authorized',
+  '27e. Alpha staff can authorize own organization finalized photo'
+);
+select ok(
+  (
+    select coalesce(public.authorize_photo_view_for_staff(
+      '00000000-0000-4000-8000-00000000b102',
+      (select id from public.photo_records where photo_request_id = '00000000-0000-4000-8000-000000007101')
+    )->>'error', '')
+  ) <> '',
+  '27f. Beta staff cannot authorize Alpha photo'
 );
 select ok(
   (

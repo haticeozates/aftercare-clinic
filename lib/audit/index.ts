@@ -71,6 +71,7 @@ export const AUDIT_ACTIONS = [
   "photo.uploaded",
   "photo.upload_denied",
   "photo.view_access_granted",
+  "photo.view_authorized",
   "photo.view_denied"
 ] as const;
 
