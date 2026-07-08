@@ -135,6 +135,10 @@ describe("clinic consent server actions", () => {
     expect(source).toContain("export async function updateConsentDraftVersionAction");
     expect(source).toContain("export async function publishConsentVersionAction");
     expect(source).toContain("export async function createConsentDraftVersionAction");
+    expect(source).toContain("export async function createConsentDocumentFormAction");
+    expect(source).toContain("export async function updateConsentDraftVersionFormAction");
+    expect(source).toContain("export async function publishConsentVersionFormAction");
+    expect(source).toContain("export async function archiveConsentDocumentFormAction");
     expect(source).toContain("export async function archiveConsentDocumentAction");
     expect(source).not.toContain("updatePublishedConsentVersionAction");
     expect(source).not.toContain("portal-contracts");

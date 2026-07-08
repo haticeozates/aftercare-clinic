@@ -71,7 +71,9 @@ test("admin creates and publishes a consent document foundation draft", async ({
   await expect(page).toHaveURL(/\/clinic\/consent-documents\/[0-9a-f-]+$/);
   await expect(page.getByText("Taslak")).toBeVisible();
   await page.getByRole("button", { name: "Yayınla" }).click();
-  await expect(page.getByText("Yayınlandı")).toBeVisible();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Evet, yayınla" }).click();
+  await expect(page.getByText("Yayınlandı", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Belge metni" })).toHaveCount(0);
   await page.getByRole("button", { name: "Yeni versiyon başlat" }).click();
   await expect(page.getByText("Taslak")).toBeVisible();
@@ -98,7 +100,7 @@ test("admin progresses a data request while staff cannot manage it", async ({ pa
   await page.getByRole("button", { name: "Çıkış yap" }).click();
   await login(page, "alpha-staff@example.test");
   await page.goto("/clinic/data-requests");
-  await expect(page.getByText("İncelemede")).toBeVisible();
+  await expect(page.getByText("İncelemede").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Durumu güncelle" })).toHaveCount(0);
 });
 
