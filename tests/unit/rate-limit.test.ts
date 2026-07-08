@@ -140,8 +140,13 @@ describe("rate-limit adapters", () => {
   it("prevents selecting the memory adapter in production", () => {
     stubBaseEnv();
     vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("SUPABASE_PROJECT_REF", "prod-aftercare");
+    vi.stubEnv("PRODUCTION_SUPABASE_PROJECT_REF", "prod-aftercare");
     vi.stubEnv("RATE_LIMIT_ADAPTER", "memory");
-    vi.stubEnv("RATE_LIMIT_PEPPER", "production-rate-limit-pepper");
+    vi.stubEnv("RATE_LIMIT_PEPPER", "production-rate-limit-pepper-32-chars-min");
+    vi.stubEnv("AUDIT_LOG_PEPPER", "production-audit-pepper-32-characters-min");
+    vi.stubEnv("RATE_LIMIT_CLEANUP_SECRET", "production-rate-limit-cleanup-secret");
 
     expect(() => factoryModule.createRateLimitAdapter()).toThrow(/cannot be selected in production/i);
   });

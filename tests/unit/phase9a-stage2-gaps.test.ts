@@ -127,10 +127,10 @@ describe("phase 9a stage2 error and response gaps", () => {
   });
 
   it("provides a server-only safe logging utility for security-critical operations", async () => {
-    const module = await import("@/lib/observability/safe-log");
-    expect(module.createCorrelationId).toBeTypeOf("function");
-    expect(module.logSafeServerEvent).toBeTypeOf("function");
-    expect(module.SAFE_INTERNAL_ERROR_CODES).toContain("rate_limit_store_unavailable");
+    const safeLogModule = await import("@/lib/observability/safe-log");
+    expect(safeLogModule.createCorrelationId).toBeTypeOf("function");
+    expect(safeLogModule.logSafeServerEvent).toBeTypeOf("function");
+    expect(safeLogModule.SAFE_INTERNAL_ERROR_CODES).toContain("rate_limit_store_unavailable");
   });
 });
 
