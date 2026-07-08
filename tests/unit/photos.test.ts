@@ -215,6 +215,118 @@ describe("photo image validation and sanitization", () => {
       expect(result.metadata).not.toHaveProperty("icc");
     }
   });
+
+  it("accepts JPEG, PNG and WebP inputs and normalizes output to WebP", async () => {
+    const base = sharp({
+      create: {
+        width: 12,
+        height: 8,
+        channels: 3,
+        background: "#dfeee8"
+      }
+    });
+    const inputs = [
+      { bytes: await base.clone().jpeg().toBuffer(), mime: "image/jpeg" },
+      { bytes: await base.clone().png().toBuffer(), mime: "image/png" },
+      { bytes: await base.clone().webp().toBuffer(), mime: "image/webp" }
+    ];
+
+    for (const input of inputs) {
+      const result = await inspectAndSanitizePhoto({ bytes: input.bytes, declaredMimeType: input.mime });
+      expect(result).toMatchObject({ ok: true, verifiedMimeType: "image/webp" });
+    }
+  });
+
+  it("normalizes EXIF orientation and strips EXIF/ICC metadata from output", async () => {
+    const input = await sharp({
+      create: {
+        width: 12,
+        height: 20,
+        channels: 3,
+        background: "#f5f1e8"
+      }
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+
+    const inputMetadata = await sharp(input).metadata();
+    expect(inputMetadata.orientation).toBe(6);
+    expect(inputMetadata.exif).toBeDefined();
+    expect(inputMetadata.icc).toBeDefined();
+
+    const result = await inspectAndSanitizePhoto({ bytes: input, declaredMimeType: "image/jpeg" });
+
+    expect(result).toMatchObject({ ok: true, width: 20, height: 12, verifiedMimeType: "image/webp" });
+    if (result.ok) {
+      expect(result.metadata.exif).toBeUndefined();
+      expect(result.metadata.icc).toBeUndefined();
+      expect(result.metadata.xmp).toBeUndefined();
+      expect(result.metadata.iptc).toBeUndefined();
+    }
+  });
+
+  it("flattens alpha and does not enlarge small inputs", async () => {
+    const result = await inspectAndSanitizePhoto({ bytes: await tinyPng(), declaredMimeType: "image/png" });
+
+    expect(result).toMatchObject({ ok: true, width: 1, height: 1 });
+    if (result.ok) {
+      expect(result.metadata.hasAlpha).toBe(false);
+    }
+  });
+
+  it("resizes long edge to at most 1600 pixels", async () => {
+    const input = await sharp({
+      create: {
+        width: 3200,
+        height: 1000,
+        channels: 3,
+        background: "#ffffff"
+      }
+    })
+      .jpeg()
+      .toBuffer();
+
+    const result = await inspectAndSanitizePhoto({ bytes: input, declaredMimeType: "image/jpeg" });
+
+    expect(result).toMatchObject({ ok: true, width: 1600 });
+    if (result.ok) {
+      expect(result.height).toBeLessThanOrEqual(1600);
+    }
+  });
+
+  it("rejects unsupported HEIC declarations, oversized bytes, oversized dimensions and MIME spoofing", async () => {
+    const png = await tinyPng();
+    await expect(inspectAndSanitizePhoto({ bytes: png, declaredMimeType: "image/heic" })).resolves.toEqual({
+      ok: false,
+      reason: "unsupported_format"
+    });
+    await expect(inspectAndSanitizePhoto({ bytes: png, declaredMimeType: "image/jpeg" })).resolves.toEqual({
+      ok: false,
+      reason: "mime_mismatch"
+    });
+    await expect(
+      inspectAndSanitizePhoto({ bytes: Buffer.alloc(PHOTO_MAX_UPLOAD_BYTES + 1), declaredMimeType: "image/jpeg" })
+    ).resolves.toEqual({
+      ok: false,
+      reason: "file_too_large"
+    });
+
+    const tooWide = await sharp({
+      create: {
+        width: 6001,
+        height: 10,
+        channels: 3,
+        background: "#ffffff"
+      }
+    })
+      .png()
+      .toBuffer();
+    await expect(inspectAndSanitizePhoto({ bytes: tooWide, declaredMimeType: "image/png" })).resolves.toEqual({
+      ok: false,
+      reason: "image_too_large"
+    });
+  });
 });
 
 describe("photo finalize compensation", () => {

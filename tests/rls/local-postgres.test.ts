@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import crypto from "node:crypto";
 import pg from "pg";
 
 const databaseUrl =
@@ -48,6 +49,107 @@ async function connect() {
   const client = new pg.Client({ connectionString: databaseUrl });
   await client.connect();
   return client;
+}
+
+async function createPhase7ClaimFixture() {
+  const db = await connect();
+  const organizationId = "00000000-0000-4000-8000-0000000000a1";
+  const carePlanId = "00000000-0000-4000-8000-00000000e101";
+  const secureLinkId = "00000000-0000-4000-8000-00000000a911";
+  const sourceTemplateDayId = "00000000-0000-4000-8000-00000000a601";
+  const createdByUserId = "00000000-0000-4000-8000-00000000a101";
+  const carePlanDayId = crypto.randomUUID();
+  const photoRequestId = crypto.randomUUID();
+  const portalSessionHash = `phase7-claim-${crypto.randomUUID()}`;
+  const intentId = crypto.randomUUID();
+
+  await db.query("begin");
+  await db.query("select set_config('app.creating_care_plan_snapshot', 'on', true)");
+  await db.query(
+    `
+      insert into public.care_plan_days (
+        id,
+        organization_id,
+        care_plan_id,
+        source_template_day_id,
+        day_number,
+        scheduled_date,
+        title,
+        status
+      )
+      values ($1, $2, $3, $4, $5, current_date, 'Temsili fotoğraf günü', 'available')
+    `,
+    [carePlanDayId, organizationId, carePlanId, sourceTemplateDayId, Math.floor(20_000 + Math.random() * 1_000_000)]
+  );
+  await db.query("commit");
+
+  await db.query(
+    `
+      insert into public.portal_sessions (
+        organization_id,
+        secure_link_id,
+        care_plan_id,
+        session_hash,
+        status,
+        expires_at,
+        created_at
+      )
+      values ($1, $2, $3, $4, 'active', now() + interval '20 minutes', now())
+    `,
+    [organizationId, secureLinkId, carePlanId, portalSessionHash]
+  );
+
+  const session = await db.query<{ id: string }>("select id from public.portal_sessions where session_hash = $1", [
+    portalSessionHash
+  ]);
+
+  await db.query(
+    `
+      insert into public.photo_requests (
+        id,
+        organization_id,
+        care_plan_id,
+        care_plan_day_id,
+        label,
+        required,
+        created_by_user_id,
+        status,
+        created_at
+      )
+      values ($1, $2, $3, $4, 'Temsili fotoğraf talebi', false, $5, 'active', now())
+    `,
+    [photoRequestId, organizationId, carePlanId, carePlanDayId, createdByUserId]
+  );
+
+  await db.query(
+    `
+      insert into public.photo_upload_intents (
+        id,
+        organization_id,
+        photo_request_id,
+        care_plan_id,
+        care_plan_day_id,
+        portal_session_id,
+        incoming_object_key,
+        declared_mime_type,
+        declared_size_bytes,
+        expires_at
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, 'image/jpeg', 512, now() + interval '5 minutes')
+    `,
+    [
+      intentId,
+      organizationId,
+      photoRequestId,
+      carePlanId,
+      carePlanDayId,
+      session.rows[0]?.id,
+      `incoming/${crypto.randomUUID()}`
+    ]
+  );
+
+  await db.end();
+  return { intentId, portalSessionHash, photoRequestId };
 }
 
 async function asAuthenticated(client: pg.Client, userId: string) {
@@ -146,5 +248,72 @@ describe("local Postgres RLS integration", () => {
         values ('00000000-0000-4000-8000-0000000000a1', 'user', 'authorization.denied', 'organization', 'denied')
       `)
     ).rejects.toThrow(/permission denied|violates row-level security/i);
+  });
+
+  it("allows only one real Postgres process to claim a photo upload intent", async () => {
+    const fixture = await createPhase7ClaimFixture();
+    const first = await connect();
+    const second = await connect();
+
+    try {
+      const [firstClaim, secondClaim] = await Promise.all([
+        first.query("select public.claim_photo_upload_intent_for_portal($1, $2) as result", [
+          fixture.portalSessionHash,
+          fixture.intentId
+        ]),
+        second.query("select public.claim_photo_upload_intent_for_portal($1, $2) as result", [
+          fixture.portalSessionHash,
+          fixture.intentId
+        ])
+      ]);
+      const results = [firstClaim.rows[0]?.result, secondClaim.rows[0]?.result];
+      expect(results.filter((result) => result.status === "processing")).toHaveLength(1);
+      expect(results.filter((result) => result.error === "intent is already processing")).toHaveLength(1);
+
+      await expect(
+        first.query(
+          `
+            select public.record_finalized_photo_for_portal(
+              $1,
+              $2,
+              gen_random_uuid(),
+              $3,
+              256,
+              16,
+              16,
+              $4
+            ) as result
+          `,
+          [fixture.portalSessionHash, fixture.intentId, `photos/${crypto.randomUUID()}.webp`, "a".repeat(64)]
+        )
+      ).resolves.toMatchObject({
+        rows: [{ result: { error: "intent claim is invalid" } }]
+      });
+
+      const noReclaim = await first.query("select public.claim_photo_upload_intent_for_portal($1, $2) as result", [
+        fixture.portalSessionHash,
+        fixture.intentId
+      ]);
+      expect(noReclaim.rows[0]?.result).toMatchObject({ error: "intent is already processing" });
+
+      await first.query(
+        "update public.photo_upload_intents set processing_started_at = now() - interval '11 minutes' where id = $1",
+        [fixture.intentId]
+      );
+      const recovered = await first.query("select public.claim_photo_upload_intent_for_portal($1, $2) as result", [
+        fixture.portalSessionHash,
+        fixture.intentId
+      ]);
+      expect(recovered.rows[0]?.result.status).toBe("processing");
+      expect(recovered.rows[0]?.result.claim_id).toEqual(expect.any(String));
+
+      const records = await first.query("select count(*)::int as count from public.photo_records where photo_request_id = $1", [
+        fixture.photoRequestId
+      ]);
+      expect(records.rows[0]?.count).toBe(0);
+    } finally {
+      await first.end();
+      await second.end();
+    }
   });
 });
