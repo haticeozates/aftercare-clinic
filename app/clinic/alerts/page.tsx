@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { alertSeverityLabel, alertStatusLabel, type AlertSeverity, type AlertStatus } from "@/lib/alerts";
 import { listAlerts } from "@/lib/alerts/service";
+import { formatDisplayDateTime } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +57,11 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
                 <div>
                   <h2>{alert.clientName}</h2>
                   <p>
-                    Gün {alert.dayNumber} · {alert.createdAt}
+                    Gün {alert.dayNumber} · {formatDisplayDateTime(alert.createdAt)}
                   </p>
-                  <span className="badge">{alertSeverityLabel(alert.severityLevel)}</span>
+                  <span className={`severity-badge severity-badge--${alert.severityLevel}`}>
+                    Seviye: {alertSeverityLabel(alert.severityLevel)}
+                  </span>
                   <span className="badge">{alertStatusLabel(alert.status)}</span>
                 </div>
                 <Link className="button secondary" href={`/clinic/alerts/${alert.id}`}>

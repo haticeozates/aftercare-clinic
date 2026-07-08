@@ -30,9 +30,14 @@ export function PortalTaskButton({
 
   if (mode === "scheduled" || availability === "locked") {
     return (
-      <button className="button secondary" type="button" disabled aria-describedby={`locked-${task.id}`}>
-        Kilitli
-      </button>
+      <div className="stack">
+        <button className="button secondary" type="button" disabled aria-describedby={`locked-${task.id}`}>
+          Kilitli
+        </button>
+        <p className="label" id={`locked-${task.id}`}>
+          Henüz açılmadı
+        </p>
+      </div>
     );
   }
 

@@ -1,6 +1,7 @@
 import { reviewAlertAction } from "@/lib/alerts/actions";
 import { alertSeverityLabel, alertStatusLabel, resolutionCodeLabel, type AlertResolutionCode } from "@/lib/alerts";
 import { getAlertDetail } from "@/lib/alerts/service";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +47,14 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
     <section className="page-section stack">
       <div className="page-header">
         <p className="eyebrow">Takip Bildirimi</p>
-        <h1>{alertStatusLabel(alert.status)}</h1>
+        <h1>Takip bildirimi detayı</h1>
         <p>Bu ekran yapılandırılmış bildirim kaydını gösterir; sistem tıbbi değerlendirme veya teşhis sunmaz.</p>
+        <div className="button-row" aria-label="Bildirim durumu">
+          <span className="badge">{alertStatusLabel(alert.status)}</span>
+          <span className={`severity-badge severity-badge--${alert.severityLevel}`}>
+            Seviye: {alertSeverityLabel(alert.severityLevel)}
+          </span>
+        </div>
       </div>
 
       <div className="panel stack">
@@ -59,7 +66,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
           <div>
             <span className="label">Plan</span>
             <strong>
-              {alert.planStartDate} - {alert.planEndDate}
+              {formatDisplayDate(alert.planStartDate)} - {formatDisplayDate(alert.planEndDate)}
             </strong>
           </div>
           <div>
@@ -98,7 +105,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
                     {event.previousStatus ?? "-"} → {event.newStatus}
                   </p>
                 </div>
-                <span className="badge">{event.occurredAt}</span>
+                <span className="badge">{formatDisplayDateTime(event.occurredAt)}</span>
               </article>
             ))}
           </div>

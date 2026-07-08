@@ -184,9 +184,9 @@ test("admin updates a procedure", async ({ page }) => {
   await page.getByLabel("Kategori").first().fill("Demo");
   await page.getByRole("button", { name: "İşlem oluştur" }).click();
 
-  const card = page.locator(".item-card", { hasText: procedureName });
+  const card = page.locator("article", { hasText: procedureName });
   await expect(card).toBeVisible();
-  await card.getByRole("button", { name: "Düzenle" }).click();
+  await card.getByText("Düzenle", { exact: true }).click();
   await card.getByLabel("Kategori").fill("Updated Demo");
   await card.getByRole("button", { name: "Kaydet" }).click();
   await expect(card.getByText("Updated Demo")).toBeVisible();
@@ -200,7 +200,9 @@ test("admin deactivates a procedure", async ({ page }) => {
   await page.getByLabel("İşlem adı").first().fill(procedureName);
   await page.getByRole("button", { name: "İşlem oluştur" }).click();
 
-  const card = page.locator(".item-card", { hasText: procedureName });
+  const card = page.locator("article", { hasText: procedureName });
+  await expect(card).toBeVisible();
+  await card.getByText("Düzenle", { exact: true }).click();
   await card.getByRole("button", { name: "Pasifleştir" }).click();
   await page.goto("/clinic/procedures?status=inactive");
   await expect(page.getByText(procedureName)).toBeVisible();

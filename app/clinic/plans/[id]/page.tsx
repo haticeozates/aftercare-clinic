@@ -1,6 +1,7 @@
 import { stopPlanAction } from "@/lib/plans/actions";
 import { planStatusLabel } from "@/lib/plans";
 import { getPlanDetail } from "@/lib/plans/service";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/formatters";
 import { LinkActions } from "./link-actions";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,9 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
 
       <div className="panel stack">
         <h2>Plan bilgileri</h2>
-        <p>Başlangıç: {plan.startDate}</p>
-        <p>Bitiş: {plan.endDate}</p>
-        <p>Kontrol tarihi: {plan.controlDate ?? "Tanımlı değil"}</p>
+        <p>Başlangıç: {formatDisplayDate(plan.startDate)}</p>
+        <p>Bitiş: {formatDisplayDate(plan.endDate)}</p>
+        <p>Kontrol tarihi: {formatDisplayDate(plan.controlDate)}</p>
         {canStop ? (
           <form action={stopPlanAction}>
             <input type="hidden" name="planId" value={plan.id} />
@@ -36,12 +37,12 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="panel stack">
-        <h2>Snapshot günleri ve görevleri</h2>
+        <h2>Plan günleri ve görevleri</h2>
         {plan.days.map((day) => (
           <article className="item-card" key={day.id}>
             <div>
               <h3>{day.title ?? `Gün ${day.dayNumber}`}</h3>
-              <p>{day.scheduledDate}</p>
+              <p>{formatDisplayDate(day.scheduledDate)}</p>
               <ul>
                 {day.tasks.map((task) => (
                   <li key={task.id}>{task.title}</li>
@@ -52,7 +53,19 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
         ))}
       </div>
 
-      <LinkActions planId={plan.id} endDate={plan.endDate} activeLink={plan.activeLink} canManage={canManageLinks} />
+      <LinkActions
+        planId={plan.id}
+        endDate={plan.endDate}
+        activeLink={
+          plan.activeLink
+            ? {
+                ...plan.activeLink,
+                expiresAt: formatDisplayDateTime(plan.activeLink.expiresAt)
+              }
+            : null
+        }
+        canManage={canManageLinks}
+      />
     </section>
   );
 }

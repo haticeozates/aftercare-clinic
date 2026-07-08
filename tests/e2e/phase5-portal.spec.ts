@@ -7,6 +7,12 @@ import { Client } from "pg";
 const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
 const alphaOwner = "alpha-owner@example.test";
 
+function futureIstanbulDate(daysAhead = 7) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul" }).format(date);
+}
+
 function readLocalEnv() {
   const envPath = path.join(process.cwd(), ".env.local");
   const fileEnv: Record<string, string> = {};
@@ -146,7 +152,7 @@ test("double click does not create duplicate completion events", async ({ page }
 
 test("scheduled plan shows disabled locked tasks", async ({ page }) => {
   await login(page);
-  await createPlan(page, "2026-07-07");
+  await createPlan(page, futureIstanbulDate());
   const link = await createSecureLink(page);
   await page.goto(link);
   await expect(page.getByText("Planınız henüz başlamadı.")).toBeVisible();
@@ -242,7 +248,7 @@ test("locked and completed states are described with text", async ({ page }) => 
   await expect(page.getByText("Tamamlandı")).toBeVisible();
 
   await login(page);
-  await createPlan(page, "2026-07-07");
+  await createPlan(page, futureIstanbulDate());
   const link = await createSecureLink(page);
   await page.goto(link);
   await expect(page.getByTestId("portal-task").getByRole("button", { name: "Kilitli" })).toBeVisible();

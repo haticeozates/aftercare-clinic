@@ -29,6 +29,14 @@ async function createPlanAndOpenPortal(page: Page) {
   await expect(page).toHaveURL(/\/care\/session$/);
 }
 
+async function submitPortalCheckIn(page: Page) {
+  await expect(page.getByRole("heading", { name: "Bugünkü durumunuzu kliniğinizle paylaşın" })).toBeVisible();
+  await page.getByLabel("Klinik değerlendirmesi için temsili durum").check();
+  await page.getByLabel("Klinik değerlendirmesi için temsili durum şiddet seçimi").selectOption("5");
+  await page.getByRole("button", { name: "Kliniğe gönder" }).click();
+  await expect(page.getByText("Bildiriminiz kliniğinizin değerlendirmesi için kaydedildi.")).toBeVisible();
+}
+
 test("login screen uses premium clinical language without developer phase copy", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "Klinik takip operasyonu için güvenli çalışma alanı" })).toBeVisible();
@@ -108,7 +116,7 @@ test("form and detail routes keep the premium shell and avoid technical copy", a
   await expectNoHorizontalOverflow(page);
 
   await page.goto("/clinic/templates");
-  await page.getByRole("link", { name: "Detay" }).first().click();
+  await page.getByRole("link", { name: "Alpha Template One" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "Yayınlanan versiyonu görüntüle" }).click();
   await expect(page.getByRole("heading", { name: "Önizleme" })).toBeVisible();
@@ -126,7 +134,10 @@ test("plan and alert detail routes are responsive and keep protected information
   await expectNoHorizontalOverflow(page);
 
   await page.goto("/clinic/alerts");
-  await page.getByRole("link", { name: "Detay" }).first().click();
+  await createPlanAndOpenPortal(page);
+  await submitPortalCheckIn(page);
+  await page.goto("/clinic/alerts");
+  await page.getByRole("link", { name: "Detay" }).last().click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByText(/token|session|@example.test|\+90/i)).toHaveCount(0);
   await expectNoHorizontalOverflow(page);

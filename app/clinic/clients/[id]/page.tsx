@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { archiveClientAction, updateClientAction } from "@/lib/clients/actions";
 import { getClientDetail } from "@/lib/clients/service";
+import { formatDisplayDateTime } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,7 +15,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <div>
           <p className="eyebrow">Danışan detayı</p>
           <h1>{client.fullName}</h1>
-          <p>Bu ekranda yalnız temel danışan bilgileri yer alır.</p>
+          <p>Danışanın temel iletişim ve kayıt durumunu güvenli şekilde yönetin.</p>
         </div>
         <Link className="button secondary" href="/clinic/clients">
           Listeye dön
@@ -44,11 +41,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
         <div>
           <span className="label">Oluşturulma</span>
-          <strong>{formatDate(client.createdAt)}</strong>
+          <strong>{formatDisplayDateTime(client.createdAt)}</strong>
         </div>
         <div>
           <span className="label">Güncellenme</span>
-          <strong>{formatDate(client.updatedAt)}</strong>
+          <strong>{formatDisplayDateTime(client.updatedAt)}</strong>
         </div>
       </div>
 

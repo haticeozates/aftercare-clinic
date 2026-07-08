@@ -20,8 +20,8 @@ export default async function TemplatesPage({
     <section className="page-section stack">
       <div className="page-header">
         <p className="eyebrow">Bakım Şablonları</p>
-        <h1>İçerik versiyonları</h1>
-        <p>Şablon içerikleri taslakta düzenlenir; yayınlanan versiyonlar geriye dönük değiştirilemez.</p>
+        <h1>Bakım şablonları</h1>
+        <p>Yayınlanmış bakım şablonlarını görüntüleyin, taslakları kontrollü şekilde hazırlayın.</p>
         {canManage ? (
           <Link className="button" href="/clinic/templates/new">
             Yeni şablon
@@ -59,7 +59,9 @@ export default async function TemplatesPage({
               <article className="item-card" key={template.id}>
                 <div>
                   <h2>
-                    <Link href={`/clinic/templates/${template.id}`}>{template.name}</Link>
+                    <Link className="subtle-link" href={`/clinic/templates/${template.id}`}>
+                      {template.name}
+                    </Link>
                   </h2>
                   <p>{template.procedureName}</p>
                   <span className="badge">{template.status === "active" ? "Aktif" : "Pasif"}</span>

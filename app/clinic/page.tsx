@@ -5,6 +5,7 @@ import { listClients } from "@/lib/clients/service";
 import { listPlans } from "@/lib/plans/service";
 import { ButtonLink, Card, EmptyState, PageHeader, StatCard, Badge, statusBadgeVariant } from "@/components/ui";
 import { planStatusLabel } from "@/lib/plans";
+import { formatDisplayDate } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,7 @@ export default async function ClinicFoundationPage() {
                   <div>
                     <h2>{plan.clientName}</h2>
                     <p>
-                      {plan.procedureName} · {plan.startDate} - {plan.endDate}
+                      {plan.procedureName} · {formatDisplayDate(plan.startDate)} - {formatDisplayDate(plan.endDate)}
                     </p>
                   </div>
                   <Badge variant={statusBadgeVariant(plan.status)}>{planStatusLabel(plan.status)}</Badge>
@@ -121,7 +122,7 @@ export default async function ClinicFoundationPage() {
                 <article className="item-card compact-card" key={plan.id}>
                   <div>
                     <h2>{plan.clientName}</h2>
-                    <p>{plan.controlDate}</p>
+                    <p>{formatDisplayDate(plan.controlDate)}</p>
                   </div>
                 </article>
               ))}

@@ -146,11 +146,12 @@ test("staff can access alert list and filters", async ({ page }) => {
 test("staff can acknowledge and resolve alert", async ({ page }) => {
   await createReportAndOpenAlerts(page, true);
   await page.getByRole("link", { name: "Detay" }).first().click();
-  await expect(page.getByRole("heading", { name: "Klinik değerlendirmesi bekliyor" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Takip bildirimi detayı" })).toBeVisible();
+  await expect(page.getByText("Klinik değerlendirmesi bekliyor")).toBeVisible();
   await page.getByRole("button", { name: "İncelendi olarak işaretle" }).click();
-  await expect(page.getByRole("heading", { name: "İncelendi" })).toBeVisible();
+  await expect(page.getByLabel("Bildirim durumu").getByText("İncelendi", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Çözüldü olarak kapat" }).click();
-  await expect(page.getByRole("heading", { name: "Kapatıldı" })).toBeVisible();
+  await expect(page.getByLabel("Bildirim durumu").getByText("Kapatıldı", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "İncelendi olarak işaretle" })).toHaveCount(0);
 });
 
@@ -158,7 +159,7 @@ test("staff can dismiss alert", async ({ page }) => {
   await createReportAndOpenAlerts(page, true);
   await page.getByRole("link", { name: "Detay" }).first().click();
   await page.getByRole("button", { name: "Bildirimi kapat" }).click();
-  await expect(page.getByRole("heading", { name: "Kapatıldı" })).toBeVisible();
+  await expect(page.getByText("Kapatıldı")).toBeVisible();
 });
 
 test("alpha staff cannot see beta alert detail", async ({ page }) => {

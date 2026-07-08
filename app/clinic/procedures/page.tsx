@@ -17,7 +17,7 @@ export default async function ProceduresPage({
       <div className="page-header">
         <p className="eyebrow">İşlemler</p>
         <h1>İşlem türleri</h1>
-        <p>Bu fazda yalnız işlem adı ve kısa işletme açıklaması tutulur; bakım talimatı yoktur.</p>
+        <p>Kliniğinizde uygulanan işlem türlerini oluşturun ve yönetin.</p>
       </div>
 
       <form className="toolbar" action="/clinic/procedures">
@@ -31,28 +31,33 @@ export default async function ProceduresPage({
       </form>
 
       {canManage ? (
-        <form className="panel form-grid" action={createProcedureAction}>
-          <h2>Yeni işlem</h2>
-          <label>
-            İşlem adı
-            <input name="name" required minLength={2} maxLength={120} />
-          </label>
-          <label>
-            Kategori
-            <input name="category" maxLength={80} placeholder="Temsili kategori" />
-          </label>
-          <label>
-            Kısa açıklama
-            <textarea
-              name="description"
-              maxLength={280}
-              placeholder="Klinik tarafından yapılandırılacak temsili işlem kaydı"
-            />
-          </label>
-          <button className="button" type="submit">
-            İşlem oluştur
-          </button>
-        </form>
+        <div className="panel stack">
+          <div>
+            <h2>Yeni işlem</h2>
+            <p>İşlem adını ve ekip içinde anlaşılır kısa tanımını ekleyin.</p>
+          </div>
+          <form className="procedure-create-grid" action={createProcedureAction}>
+            <label>
+              İşlem adı
+              <input name="name" required minLength={2} maxLength={120} />
+            </label>
+            <label>
+              Kategori
+              <input name="category" maxLength={80} placeholder="Örn. Cilt bakımı" />
+            </label>
+            <label className="procedure-description-field">
+              Kısa açıklama
+              <textarea
+                name="description"
+                maxLength={280}
+                placeholder="Kliniğinizin kendi kullanımına yönelik kısa işlem açıklaması"
+              />
+            </label>
+            <button className="button" type="submit">
+              İşlem oluştur
+            </button>
+          </form>
+        </div>
       ) : (
         <div className="notice">Çalışan rolü işlem listesini görüntüleyebilir; işlem oluşturamaz veya düzenleyemez.</div>
       )}
@@ -64,20 +69,22 @@ export default async function ProceduresPage({
             <p>Filtreyi değiştirin veya yetkiniz varsa yeni işlem oluşturun.</p>
           </div>
         ) : (
-          <div className="card-list">
+          <div className="record-list">
             {procedures.map((procedure) => (
-              <article className="item-card" key={procedure.id}>
-                <div>
-                  <h2>{procedure.name}</h2>
-                  <p>{procedure.description ?? "Klinik tarafından yapılandırılacak temsili işlem kaydı"}</p>
-                  <span className="badge">{procedure.category ?? "Kategori yok"}</span>
-                  <span className="badge">{procedure.status === "active" ? "Aktif" : "Pasif"}</span>
+              <article className="record-row" key={procedure.id}>
+                <div className="record-main">
+                  <div>
+                    <h2>{procedure.name}</h2>
+                    <p>{procedure.description ?? "Kısa açıklama eklenmedi."}</p>
+                  </div>
+                  <div className="badge-row">
+                    <span className="badge">{procedure.category ?? "Kategori yok"}</span>
+                    <span className="badge">{procedure.status === "active" ? "Aktif" : "Pasif"}</span>
+                  </div>
                 </div>
                 {canManage && procedure.status === "active" ? (
-                  <div className="stack">
-                    <button className="button secondary" type="button">
-                      Düzenle
-                    </button>
+                  <details className="procedure-edit">
+                    <summary className="button secondary">Düzenle</summary>
                     <form className="inline-form" action={updateProcedureAction}>
                       <input type="hidden" name="id" value={procedure.id} />
                       <label htmlFor={`name-${procedure.id}`}>İşlem adı</label>
@@ -96,7 +103,7 @@ export default async function ProceduresPage({
                         Pasifleştir
                       </button>
                     </form>
-                  </div>
+                  </details>
                 ) : null}
               </article>
             ))}

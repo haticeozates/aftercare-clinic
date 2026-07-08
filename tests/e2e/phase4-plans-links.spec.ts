@@ -49,7 +49,7 @@ test("staff creates a care plan", async ({ page }) => {
 test("plan detail shows read-only snapshot days and tasks", async ({ page }) => {
   await login(page, users.alphaOwner);
   await page.goto("/clinic/plans/00000000-0000-4000-8000-00000000e101");
-  await expect(page.getByRole("heading", { name: "Snapshot günleri ve görevleri" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan günleri ve görevleri" })).toBeVisible();
   await expect(page.getByText("Klinik tarafından yapılandırılmış temsili günlük görev")).toBeVisible();
   await expect(page.getByRole("button", { name: "Görev ekle" })).toHaveCount(0);
 });
@@ -82,7 +82,14 @@ test("new template draft does not change an existing plan snapshot", async ({ pa
   await login(page, users.alphaOwner);
   await page.goto("/clinic/templates");
   await page.getByRole("link", { name: "Alpha Template One" }).click();
-  await page.getByRole("button", { name: "Yeni taslak oluştur" }).click();
+  await expect(page.getByRole("heading", { name: "Alpha Template One" })).toBeVisible();
+  const openDraftLink = page.getByRole("link", { name: "Taslağı aç" });
+  try {
+    await openDraftLink.waitFor({ state: "visible", timeout: 5000 });
+    await openDraftLink.click();
+  } catch {
+    await page.getByRole("button", { name: "Yeni taslak oluştur" }).click();
+  }
   await expect(page).toHaveURL(/\/clinic\/templates\/[0-9a-f-]+\/draft$/);
   await page.getByLabel("Görev başlığı").fill("Yeni taslak görevi plana yansımamalı");
   await page.getByLabel("Görev türü").selectOption("do");
@@ -104,7 +111,7 @@ test("rotate invalidates old link and new link opens token-free session", async 
   await expect(page).toHaveURL(/\/care\/invalid$/);
   await page.goto(newLink);
   await expect(page).toHaveURL(/\/care\/session$/);
-  await expect(page.getByText("Bağlantınız doğrulandı.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bakım Planınız" })).toBeVisible();
   await expect(page.getByText("Synthetic Alpha Client")).toHaveCount(0);
   await expect(page.getByText("Alpha Procedure")).toHaveCount(0);
 });

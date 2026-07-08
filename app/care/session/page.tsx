@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getPortalPlan } from "@/lib/portal/service";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/formatters";
 import { PortalTaskButton } from "@/app/care/session/task-button";
 import { CheckInForm } from "@/app/care/session/check-in-form";
 
@@ -19,7 +20,7 @@ export default async function CareSessionPage() {
         <p className="eyebrow">AfterCare Clinic</p>
         <h1>Bakım Planınız</h1>
         <p>
-          {plan.startDate} - {plan.endDate} · Saat dilimi {plan.timezone}
+          {formatDisplayDate(plan.startDate)} - {formatDisplayDate(plan.endDate)}
         </p>
         {plan.mode === "scheduled" ? <p className="notice">Planınız henüz başlamadı.</p> : null}
         {plan.mode === "readonly" ? <p className="notice">Plan tamamlandı.</p> : null}
@@ -41,11 +42,11 @@ export default async function CareSessionPage() {
                   <div className="button-row">
                     <span className="badge">{task.taskType === "information" ? "Bilgilendirme" : "Görev"}</span>
                     {task.required ? <span className="badge">Zorunlu</span> : <span className="badge">Opsiyonel</span>}
-                    {task.status === "completed" ? <span className="badge">Tamamlandı</span> : <span className="badge">Bekliyor</span>}
+                    {task.status === "completed" ? <span className="badge">✓ Tamamlandı</span> : <span className="badge">Bekliyor</span>}
                   </div>
                   <h3>{task.title}</h3>
                   {task.description ? <p>{task.description}</p> : null}
-                  {task.completedAt ? <p className="label">Tamamlanma zamanı: {task.completedAt}</p> : null}
+                  {task.completedAt ? <p className="label">Tamamlanma zamanı: {formatDisplayDateTime(task.completedAt)}</p> : null}
                 </div>
                 <PortalTaskButton mode={plan.mode} task={task} availability={todayDay.availability} />
               </article>
@@ -74,7 +75,8 @@ export default async function CareSessionPage() {
               <div>
                 <strong>Gün {day.dayNumber}</strong>
                 <p>
-                  {day.scheduledDate} · {day.availability === "locked" ? "Kilitli" : day.status === "completed" ? "Tamamlandı" : "Görüntülenebilir"}
+                  {formatDisplayDate(day.scheduledDate)} ·{" "}
+                  {day.availability === "locked" ? "Kilitli" : day.status === "completed" ? "Tamamlandı" : "Görüntülenebilir"}
                 </p>
               </div>
               {day.availability === "locked" ? (

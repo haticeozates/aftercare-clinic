@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { listClients, type ClientStatus } from "@/lib/clients/service";
+import { formatDisplayDate } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(value));
-}
 
 export default async function ClientsPage({
   searchParams
@@ -22,7 +19,7 @@ export default async function ClientsPage({
         <div>
           <p className="eyebrow">Danışanlar</p>
           <h1>Danışan kayıtları</h1>
-          <p>Bu fazda yalnız temel kimlik ve iletişim kaydı tutulur.</p>
+          <p>Danışan kayıtlarınızı güvenli şekilde görüntüleyin ve yönetin.</p>
         </div>
         <Link className="button" href="/clinic/clients/new">
           Yeni danışan
@@ -44,7 +41,7 @@ export default async function ClientsPage({
         {clients.length === 0 ? (
           <div className="empty-state">
             <h2>Kayıt bulunamadı</h2>
-            <p>Filtreleri değiştirin veya yeni bir sentetik danışan kaydı oluşturun.</p>
+            <p>Filtreleri değiştirin veya yeni bir danışan kaydı oluşturun.</p>
           </div>
         ) : (
           <div className="table-wrap">
@@ -68,9 +65,11 @@ export default async function ClientsPage({
                       <span className="badge">{client.status === "active" ? "Aktif" : "Arşivli"}</span>
                     </td>
                     <td data-label="Sorumlu">{client.responsibleMembershipId ? "Atandı" : "Atanmadı"}</td>
-                    <td data-label="Oluşturulma">{formatDate(client.createdAt)}</td>
+                    <td data-label="Oluşturulma">{formatDisplayDate(client.createdAt)}</td>
                     <td data-label="Aksiyon">
-                      <Link href={`/clinic/clients/${client.id}`}>Detay</Link>
+                      <Link className="action-link" href={`/clinic/clients/${client.id}`}>
+                        Detay
+                      </Link>
                     </td>
                   </tr>
                 ))}

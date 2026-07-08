@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listPlans } from "@/lib/plans/service";
 import { planStatusLabel, type PlanStatus } from "@/lib/plans";
+import { formatDisplayDate } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,8 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     <section className="page-section stack">
       <div className="page-header">
         <p className="eyebrow">Bakım Planları</p>
-        <h1>Plan snapshot kayıtları</h1>
-        <p>Planlar yayınlanmış şablon versiyonundan snapshot olarak oluşturulur.</p>
+        <h1>Bakım planları</h1>
+        <p>Danışanlara atanmış bakım planlarını ve takip durumlarını görüntüleyin.</p>
         {canCreate ? (
           <Link className="button" href="/clinic/plans/new">
             Yeni plan oluştur
@@ -53,8 +54,8 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                     {plan.procedureName} · {plan.templateName} v{plan.versionNumber}
                   </p>
                   <span className="badge">{planStatusLabel(plan.status)}</span>
-                  <span className="badge">{plan.startDate}</span>
-                  <span className="badge">{plan.endDate}</span>
+                  <span className="badge">{formatDisplayDate(plan.startDate)}</span>
+                  <span className="badge">{formatDisplayDate(plan.endDate)}</span>
                 </div>
                 <Link className="button secondary" href={`/clinic/plans/${plan.id}`}>
                   Detay
