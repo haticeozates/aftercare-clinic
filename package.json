@@ -26,6 +26,7 @@
     "test:e2e:phase4": "playwright test tests/e2e/phase4-plans-links.spec.ts --project=chromium",
     "test:e2e:phase5": "playwright test tests/e2e/phase5-portal.spec.ts --project=chromium",
     "test:e2e:phase6": "playwright test tests/e2e/phase6-checkins-alerts.spec.ts --project=chromium",
+    "test:e2e:phase7": "playwright test tests/e2e/phase7-photo-upload.spec.ts --project=chromium",
     "test:e2e:design": "playwright test tests/e2e/phase6-ui-design.spec.ts --project=chromium",
     "test:rls": "npm run test:rls:static",
     "test:rls:static": "vitest run tests/rls/sql-policy.test.ts",
@@ -46,7 +47,7 @@
     "verify:phase5": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:e2e:phase5 && npm run verify && npm audit",
     "verify:phase6": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:e2e:phase6 && npm run verify && npm audit",
     "verify:phase6-ui": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:e2e:phase2 && npm run test:e2e:phase3 && npm run test:e2e:phase4 && npm run test:e2e:phase5 && npm run test:e2e:phase6 && npm run test:ui && npm run test:e2e:design && npm run verify && npm audit",
-    "verify:phase7": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run verify && npm audit"
+    "verify:phase7": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run test:e2e:phase7 && npm run verify && npm audit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
