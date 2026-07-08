@@ -74,6 +74,15 @@ npm run test:clinic-assignment
 npm run test:data-requests
 npm run test:portal-consent
 npm run test:portal-data-requests
+npm run test:rate-limit
+```
+
+# Phase 9A Stage 2 Tests
+
+```bash
+npm run test:rate-limit
+npm run test:e2e:phase9a-rate-limit
+npm run test:e2e:phase9a-stage2
 ```
 
 # Database Tests
@@ -100,7 +109,7 @@ E2E requires Playwright chromium and running dev server (Playwright config handl
 From [Phase Handoff](../references/phase-handoff.md):
 
 - [ ] `.env.local` not tracked
-- [ ] Service role keys, peppers (`AUDIT_LOG_PEPPER`, `RATE_LIMIT_PEPPER`), cleanup secrets not in browser bundles
+- [ ] Service role keys, peppers (`AUDIT_LOG_PEPPER`, `RATE_LIMIT_PEPPER`), cleanup secrets (`RATE_LIMIT_CLEANUP_SECRET`, `PHOTO_CLEANUP_SECRET`) not in browser bundles
 - [ ] Audit metadata free of body text, PII, tokens, storage keys
 - [ ] Generated files (`.next`, test results) not committed
 - [ ] `npm audit` clean for phase gates that include it

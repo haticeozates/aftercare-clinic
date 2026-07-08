@@ -4,7 +4,7 @@ Production-oriented foundation for AfterCare Clinic. This project is intentional
 
 ## Current Scope
 
-Included through Faz 9A Stage 1:
+Included through Faz 9A Stage 2:
 
 - Next.js App Router + TypeScript foundation
 - Local Supabase/Postgres development workflow
@@ -34,6 +34,8 @@ Included through Faz 9A Stage 1:
 - Clinic client document assignment create/cancel with portal visibility boundaries
 - Clinic data request review with staff assignee assignment and event history
 - Durable shared PostgreSQL rate limiting for security-critical portal routes
+- Production environment guards, safe server logging, baseline security headers, and sensitive cache boundaries
+- Protected internal rate-limit bucket cleanup route (no production cron wired yet)
 - Synthetic local/test seed and deterministic test fixtures
 
 ## Explicitly Out Of Scope
@@ -83,6 +85,7 @@ Server-only:
 - `PRODUCTION_SUPABASE_PROJECT_REF`
 - `AUDIT_LOG_PEPPER`
 - `RATE_LIMIT_PEPPER`
+- `RATE_LIMIT_CLEANUP_SECRET`
 - `PHOTO_CLEANUP_SECRET`
 
 Public:
@@ -90,7 +93,9 @@ Public:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Secrets must not be logged. `SUPABASE_SERVICE_ROLE_KEY`, `AUDIT_LOG_PEPPER`, `RATE_LIMIT_PEPPER` and cleanup secrets must never be prefixed with `NEXT_PUBLIC_` and must never be imported by client components.
+Secrets must not be logged. `SUPABASE_SERVICE_ROLE_KEY`, `AUDIT_LOG_PEPPER`, `RATE_LIMIT_PEPPER`, `RATE_LIMIT_CLEANUP_SECRET`, and `PHOTO_CLEANUP_SECRET` must never be prefixed with `NEXT_PUBLIC_` and must never be imported by client components.
+
+In production, `RATE_LIMIT_PEPPER` is required (minimum 32 characters, no placeholders, must differ from `AUDIT_LOG_PEPPER`). `RATE_LIMIT_CLEANUP_SECRET` is required separately from `PHOTO_CLEANUP_SECRET`. Production must not point at local Supabase URLs or local project refs.
 
 ## Test Commands
 
@@ -114,6 +119,7 @@ npm run test:e2e:phase7-view
 npm run test:e2e:phase7-cleanup
 npm run test:e2e:phase8
 npm run test:e2e:phase9a-rate-limit
+npm run test:e2e:phase9a-stage2
 npm run build
 npm run verify
 npm run verify:phase8
@@ -121,7 +127,11 @@ npm run verify:phase8
 
 ## Security Notes
 
-Secure link validation and portal task mutations use a durable PostgreSQL-backed shared rate limiter for multi-instance safety. Process-local counters are not used on security-critical routes. Store failures fail closed with generic responses. Expired bucket cleanup is not wired to production cron in this stage.
+Secure link validation and portal task mutations use a durable PostgreSQL-backed shared rate limiter for multi-instance safety. Process-local counters are not used on security-critical routes. Store failures fail closed with generic responses and safe structured server logs (no raw Postgres details, tokens, limiter keys, or storage paths).
+
+Baseline security headers are applied through middleware. HSTS is emitted only when `APP_ENV=production`. Strict CSP is deferred until nonce/hash infrastructure exists. Sensitive portal and internal job responses use `Cache-Control: no-store, private`.
+
+Expired rate-limit buckets can be removed through `POST /internal/jobs/rate-limit-cleanup` with `RATE_LIMIT_CLEANUP_SECRET`. This route is not wired to production cron in Stage 2.
 
 Photo upload uses a private incoming bucket, server-side validation, WebP normalization, private final storage and short-lived signed view URLs. Raw tokens, signed URLs and storage keys must not be written to audit metadata or user-facing logs.
 

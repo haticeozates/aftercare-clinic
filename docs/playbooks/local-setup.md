@@ -49,7 +49,10 @@ Copy `.env.example` to `.env.local` (never commit `.env.local`).
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server | Never `NEXT_PUBLIC_` |
 | `AUDIT_LOG_PEPPER` | Server | Token/session hashing |
-| `PHOTO_CLEANUP_SECRET` | Server | Internal cleanup job auth |
+| `RATE_LIMIT_PEPPER` | Server | Opaque durable rate-limit key derivation (optional locally; required in production) |
+| `RATE_LIMIT_CLEANUP_SECRET` | Server | Internal rate-limit bucket cleanup auth (separate from photo cleanup) |
+| `PHOTO_CLEANUP_SECRET` | Server | Internal photo cleanup job auth |
+| `PRODUCTION_SUPABASE_PROJECT_REF` | Server | Guard rail for preview/local misconfiguration |
 
 Populate from `npm run supabase:status` output after `supabase:start`.
 
@@ -65,6 +68,16 @@ npm run dev
 
 Clinic UI: `http://localhost:3000/login` → `/clinic`
 Portal: requires a secure link from a seeded or test-created care plan.
+
+# Phase 9A Stage 2 Checks
+
+```bash
+npm run test:rate-limit
+npm run test:e2e:phase9a-rate-limit
+npm run test:e2e:phase9a-stage2
+```
+
+Stage 2 E2E for rate-limit cleanup requires `RATE_LIMIT_CLEANUP_SECRET` in the dev server environment (the npm script sets a synthetic local value).
 
 # Related
 

@@ -17,7 +17,7 @@ This document is the practical continuation map for the production project. It r
 
 - Repository: `https://github.com/haticeozates/aftercare-clinic.git`
 - Branch: `main`
-- Current functional scope: Faz 0 through Faz 9A Stage 1 (in progress; not fully closed)
+- Current functional scope: Faz 0 through Faz 9A Stage 2 (in progress; not fully closed)
 - Latest exact commit should be verified with `git log --oneline -5` before starting new work.
 - `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and `.env.example`.
 
@@ -378,7 +378,7 @@ npm run test:e2e:phase8
 npm run verify:phase8
 ```
 
-## Phase 9A Stage 1 — Durable Rate Limiting (in progress)
+## Phase 9A Stage 1 — Durable Rate Limiting (complete)
 
 Stage 1 replaces process-local abuse hooks on security-critical portal routes with a durable PostgreSQL-backed shared limiter.
 
@@ -391,17 +391,35 @@ Delivered in Stage 1:
 - Migrated call sites: `/care/t/[token]` and `/care/session/tasks`.
 - pgTAP `phase9a_durable_rate_limiting.test.sql`, unit/integration coverage, E2E `phase9a-rate-limit.spec.ts`.
 
-Not in Stage 1:
+## Phase 9A Stage 2 — Operational Hardening (complete)
 
-- Environment-wide error/log redaction hardening, security headers, cache/no-store sweep (Stage 2).
-- Production cron wiring for expired bucket cleanup.
-- Rate limits on photo upload, consent decisions, or data-request portal mutations unless added in a later 9A stage with explicit scope.
+Stage 2 hardens environment validation, safe logging, web security boundaries, sensitive cache control, and internal rate-limit bucket cleanup.
+
+Delivered in Stage 2:
+
+- Central production env validation for `RATE_LIMIT_PEPPER` (required, min length, no placeholders, must differ from `AUDIT_LOG_PEPPER`) and `RATE_LIMIT_CLEANUP_SECRET`.
+- Supabase local/production project ref and URL guards in `lib/env/index.ts`.
+- Safe structured server logging (`lib/observability/safe-log.ts`) with allowlisted results and internal error codes.
+- Baseline security headers via `middleware.ts` (`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, frame embedding denial, cross-origin policies).
+- HSTS only when `APP_ENV=production`; not emitted for local/test/development.
+- CSP deferred to Stage 3/future hardening until nonce/hash App Router infrastructure exists.
+- `Cache-Control: no-store, private` on sensitive portal/rate-limit JSON responses and internal cleanup routes.
+- Protected internal cleanup route `POST /internal/jobs/rate-limit-cleanup` with `RATE_LIMIT_CLEANUP_SECRET`, bounded batch deletes, and single-runner lock reuse.
+- Unit/integration/E2E coverage: `phase9a-stage2-gaps.test.ts`, `phase9a-stage2.test.ts`, `phase9a-stage2-boundaries.test.ts`, `phase9a-stage2-hardening.spec.ts`.
+
+Not in Stage 2:
+
+- Production cron/scheduler wiring for rate-limit cleanup (endpoint exists; operator must call it).
+- CSP enforcement (report-only or strict policy awaits Stage 3).
+- Rate limits on photo upload, consent decisions, or data-request portal mutations (deferred unless a later stage documents explicit abuse evidence and key facets).
+- Linux Node 24 clean-container verification, CI workflow changes, migration freeze gate, pre-deploy release gate (Stage 3).
 
 Verification:
 
 ```bash
 npm run test:rate-limit
 npm run test:e2e:phase9a-rate-limit
+npm run test:e2e:phase9a-stage2
 npm run test:secure-links
 npm run test:portal
 npm run verify:phase8
@@ -409,7 +427,7 @@ npm run verify:phase8
 
 ## Next Phase
 
-Phase 9A continues with Stage 2 environment/error/log hardening and Stage 3 CI/pre-deploy closure. **Faz 9B is not started.** Do not treat Faz 9A as fully closed until the remaining stages complete.
+Phase 9A continues with Stage 3 CI/pre-deploy closure and final Faz 9A sign-off. **Faz 9B is not started.** Do not treat Faz 9A as fully closed until Stage 3 completes.
 
 Before starting new work:
 
