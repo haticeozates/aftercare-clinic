@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganizationPermission } from "@/lib/auth/server";
 import { hasPermission } from "@/lib/authorization";
-import { writeAuditEvent } from "@/lib/audit";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { mapConsentDatabaseError, parseConsentDocumentInput, parseConsentVersionInput } from "@/lib/consent";
+import { parseConsentVersionInput } from "@/lib/consent";
+import { parseCreateConsentDocumentInput } from "@/lib/consent/clinic-contracts";
+import * as clinicConsentService from "@/lib/consent/clinic-service";
 
 export interface ConsentDocumentListItem {
   id: string;
@@ -166,110 +167,53 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
 
 export async function createConsentDocumentFromForm(formData: FormData) {
   const context = await requireOrganizationPermission("consent.manage");
-  const documentInput = parseConsentDocumentInput({
+  const input = parseCreateConsentDocumentInput({
     code: String(formData.get("code") ?? ""),
     title: String(formData.get("title") ?? ""),
     documentKind: String(formData.get("documentKind") ?? ""),
-    purposeKey: String(formData.get("purposeKey") ?? "")
+    purposeKey: String(formData.get("purposeKey") ?? ""),
+    titleSnapshot: String(formData.get("titleSnapshot") ?? formData.get("initialDraftTitle") ?? ""),
+    summaryText: String(formData.get("summaryText") ?? formData.get("initialDraftSummary") ?? ""),
+    bodyText: String(formData.get("bodyText") ?? formData.get("initialDraftBody") ?? "")
   });
+
+  const documentId = await clinicConsentService.createConsentDocument(context.organization.id, input);
+  revalidatePath("/clinic/consent-documents");
+  return documentId;
+}
+
+export async function updateConsentDraftVersion(versionId: string, formData: FormData) {
+  await requireOrganizationPermission("consent.manage");
   const versionInput = parseConsentVersionInput({
     titleSnapshot: String(formData.get("titleSnapshot") ?? ""),
     summaryText: String(formData.get("summaryText") ?? ""),
     bodyText: String(formData.get("bodyText") ?? "")
   });
-  const supabase = await createServerSupabaseClient();
-  const { data: document, error: documentError } = await supabase
-    .from("consent_documents")
-    .insert({
-      organization_id: context.organization.id,
-      code: documentInput.code,
-      title: documentInput.title,
-      document_kind: documentInput.documentKind,
-      purpose_key: documentInput.purposeKey,
-      status: "active",
-      created_by_user_id: context.user.id
-    })
-    .select("id")
-    .single<{ id: string }>();
+  const documentId = String(formData.get("documentId") ?? "");
 
-  if (documentError || !document) {
-    throw new Error(mapConsentDatabaseError(documentError));
-  }
-
-  const { error: versionError } = await supabase.from("consent_document_versions").insert({
-    organization_id: context.organization.id,
-    consent_document_id: document.id,
-    version_number: 1,
-    status: "draft",
-    title_snapshot: versionInput.titleSnapshot,
-    body_text: versionInput.bodyText,
-    summary_text: versionInput.summaryText,
-    created_by_user_id: context.user.id
-  });
-
-  if (versionError) {
-    throw new Error(mapConsentDatabaseError(versionError));
-  }
-
-  await writeAuditEvent({
-    organizationId: context.organization.id,
-    actorType: "user",
-    actorUserId: context.user.id,
-    action: "consent_document.created",
-    entityType: "consent_document",
-    entityId: document.id,
-    result: "success",
-    safeMetadata: { document_kind: documentInput.documentKind, source: "server_action" }
-  });
+  await clinicConsentService.updateConsentDraftVersion(versionId, versionInput);
 
   revalidatePath("/clinic/consent-documents");
-  return document.id;
+  if (documentId) {
+    revalidatePath(`/clinic/consent-documents/${documentId}`);
+  }
 }
 
 export async function publishConsentVersion(versionId: string) {
   await requireOrganizationPermission("consent.manage");
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.rpc("publish_consent_document_version", {
-    target_version_id: versionId
-  });
-
-  if (error || (data as { error?: string } | null)?.error) {
-    throw new Error(mapConsentDatabaseError(error ?? { message: (data as { error?: string } | null)?.error }));
-  }
-
+  await clinicConsentService.publishConsentVersion(versionId);
   revalidatePath("/clinic/consent-documents");
 }
 
 export async function createDraftFromLatestVersion(documentId: string) {
   const context = await requireOrganizationPermission("consent.manage");
-  const supabase = await createServerSupabaseClient();
-  const { data: latest, error } = await supabase
-    .from("consent_document_versions")
-    .select("version_number,title_snapshot,body_text,summary_text")
-    .eq("organization_id", context.organization.id)
-    .eq("consent_document_id", documentId)
-    .order("version_number", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ version_number: number; title_snapshot: string; body_text: string; summary_text: string | null }>();
+  await clinicConsentService.createDraftFromLatestVersion(context.organization.id, documentId);
+  revalidatePath(`/clinic/consent-documents/${documentId}`);
+}
 
-  if (error || !latest) {
-    throw new Error("Yeni taslak oluşturulamadı.");
-  }
-
-  const { error: insertError } = await supabase.from("consent_document_versions").insert({
-    organization_id: context.organization.id,
-    consent_document_id: documentId,
-    version_number: latest.version_number + 1,
-    status: "draft",
-    title_snapshot: latest.title_snapshot,
-    body_text: latest.body_text,
-    summary_text: latest.summary_text,
-    created_by_user_id: context.user.id
-  });
-
-  if (insertError) {
-    throw new Error(mapConsentDatabaseError(insertError));
-  }
-
+export async function archiveConsentDocument(documentId: string) {
+  await requireOrganizationPermission("consent.manage");
+  await clinicConsentService.archiveConsentDocument(documentId);
+  revalidatePath("/clinic/consent-documents");
   revalidatePath(`/clinic/consent-documents/${documentId}`);
 }

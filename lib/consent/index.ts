@@ -60,15 +60,64 @@ export function parseConsentVersionInput(input: unknown) {
 }
 
 export function mapConsentDatabaseError(error: { code?: string; message?: string } | null | undefined) {
-  const message = error?.message ?? "";
-  if (error?.code === "23505") {
+  return mapConsentRpcResult(error, null);
+}
+
+export const CONSENT_GENERIC_ERROR = "Belge işlemi tamamlanamadı. Lütfen tekrar deneyin.";
+
+const CONSENT_RPC_ERROR_MESSAGES: Record<string, string> = {
+  "permission denied": "Bu işlem için yetkiniz yok.",
+  "not found": "Belge bulunamadı.",
+  "draft already exists": "Bu belge için zaten aktif bir taslak var.",
+  "version conflict": "Versiyon oluşturulurken bir çakışma oluştu. Lütfen tekrar deneyin.",
+  "content is required": "Yayınlamadan önce başlık ve belge metni zorunludur.",
+  "document is archived": "Arşivlenmiş belgelerde değişiklik yapılamaz.",
+  "version is not draft": "Yalnızca taslak versiyonlar güncellenebilir.",
+  "source version must be published or retired":
+    "Yeni taslak yalnızca yayımlanmış bir versiyondan oluşturulabilir."
+};
+
+type ConsentTransportError = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
+type ConsentRpcResult = {
+  error?: string;
+  status?: string;
+};
+
+export function mapConsentRpcResult(
+  transportError: ConsentTransportError | null | undefined,
+  rpcResult: ConsentRpcResult | null | undefined
+): string {
+  if (rpcResult?.error) {
+    return CONSENT_RPC_ERROR_MESSAGES[rpcResult.error] ?? CONSENT_GENERIC_ERROR;
+  }
+
+  if (transportError?.code === "23505") {
     return "Bu kodla bir belge zaten var.";
   }
-  if (error?.code === "42501" || message.includes("permission")) {
-    return "Bu işlem için yetkiniz yok.";
+
+  if (transportError) {
+    return CONSENT_GENERIC_ERROR;
   }
-  if (message.includes("immutable")) {
-    return "Yayınlanmış belge versiyonları değiştirilemez.";
-  }
-  return "Belge işlemi tamamlanamadı.";
+
+  return CONSENT_GENERIC_ERROR;
+}
+
+export type ConsentVersionDraftSource = {
+  id: string;
+  status: ConsentVersionStatus;
+  versionNumber: number;
+};
+
+export function selectPublishedVersionForNewDraft(versions: ConsentVersionDraftSource[]): string | null {
+  const source = versions
+    .filter((version) => version.status === "published" || version.status === "retired")
+    .sort((left, right) => right.versionNumber - left.versionNumber)[0];
+
+  return source?.id ?? null;
 }
