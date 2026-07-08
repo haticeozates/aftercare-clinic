@@ -17,6 +17,7 @@ const serverEnvSchema = z
     PHOTO_CLEANUP_SECRET: z.string().min(16).optional(),
     SUPABASE_PROJECT_REF: z.string().min(1),
     AUDIT_LOG_PEPPER: z.string().min(1),
+    RATE_LIMIT_PEPPER: z.string().min(1).optional(),
     PRODUCTION_SUPABASE_PROJECT_REF: z.string().min(1).optional()
   })
   .superRefine((env, ctx) => {
