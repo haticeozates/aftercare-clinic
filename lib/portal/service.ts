@@ -9,7 +9,7 @@ import { buildReportItemsPayload, mapCheckInError, type ReportItemInput } from "
 
 const PORTAL_COOKIE_NAME = "aftercare_portal_session";
 
-async function getPortalSessionHash() {
+export async function getPortalSessionHash() {
   const cookieStore = await cookies();
   const token = cookieStore.get(PORTAL_COOKIE_NAME)?.value;
   if (!token) {
