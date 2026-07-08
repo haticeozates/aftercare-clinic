@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { AUDIT_ACTIONS } from "@/lib/audit";
 import { parseCreateConsentDocumentInput } from "@/lib/consent/clinic-contracts";
-import { getClinicConsentDocuments } from "@/lib/consent/clinic-service";
 
-describe("Clinic consent management contracts and services", () => {
+describe("Clinic consent management security contracts", () => {
   it("validates create document input correctly", () => {
     const input = parseCreateConsentDocumentInput({
       code: "  TEST-CODE  ",
@@ -22,7 +22,8 @@ describe("Clinic consent management contracts and services", () => {
     expect(input.initialDraftBody).toBe("Body must be at least 20 chars");
   });
 
-  it("getClinicConsentDocuments fails when function is not implemented", async () => {
-    await expect(getClinicConsentDocuments()).rejects.toThrow("Not implemented");
+  it("includes Phase 8.3A clinic consent audit actions in the TypeScript allowlist", () => {
+    expect(AUDIT_ACTIONS).toContain("consent_document.archived");
+    expect(AUDIT_ACTIONS).toContain("consent_version.updated");
   });
 });

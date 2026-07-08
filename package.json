@@ -20,6 +20,7 @@
     "test:alerts": "vitest run tests/unit/alerts.test.ts",
     "test:photos": "vitest run tests/unit/photos.test.ts tests/unit/photo-upload-ui.test.ts tests/unit/photo-view-ui.test.ts tests/unit/photo-cleanup.test.ts",
     "test:consent": "vitest run tests/unit/consent.test.ts",
+    "test:clinic-consent": "vitest run tests/unit/clinic-consent.test.ts",
     "test:data-requests": "vitest run tests/unit/data-requests.test.ts",
     "test:portal-consent": "vitest run tests/unit/portal-consent.test.ts",
     "test:portal-data-requests": "vitest run tests/unit/portal-data-requests.test.ts",
