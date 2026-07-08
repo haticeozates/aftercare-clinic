@@ -44,7 +44,8 @@ test.describe("Phase 8.3B - Clinic Consent Assignment", () => {
     await page.getByLabel("Belge versiyonu").selectOption({ label: `${code} · v1 · Temsili bilgilendirme v1` });
     await page.getByRole("button", { name: "Belge ata" }).click();
     await expect(page.getByText("Belge ataması oluşturuldu.")).toBeVisible();
-    await expect(page.getByText("Bekliyor")).toBeVisible();
+    const assignmentCard = page.locator("article", { hasText: code });
+    await expect(assignmentCard.getByText("Bekliyor")).toBeVisible();
 
     await page.getByRole("button", { name: "Çıkış yap" }).click();
     await login(page, "alpha-staff@example.test");
@@ -63,11 +64,11 @@ test.describe("Phase 8.3B - Clinic Consent Assignment", () => {
     await page.getByRole("button", { name: "Belge ata" }).click();
     await expect(page.getByText("Belge ataması oluşturuldu.")).toBeVisible();
 
-    await page.getByRole("button", { name: "İptal et" }).click();
+    const assignmentCard = page.locator("article", { hasText: code });
+    await assignmentCard.getByRole("button", { name: "İptal et" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByRole("button", { name: "Evet, iptal et" }).click();
-    await expect(page.getByText("Atama iptal edildi.")).toBeVisible();
-    await expect(page.getByText("İptal edildi")).toBeVisible();
-    await expect(page.getByText(/İptal eden:/)).toBeVisible();
+    await expect(assignmentCard.locator(".badge", { hasText: "İptal edildi" })).toBeVisible();
+    await expect(assignmentCard.getByText(/İptal eden:/)).toBeVisible();
   });
 });

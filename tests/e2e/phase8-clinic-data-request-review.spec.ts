@@ -45,11 +45,13 @@ test.describe("Phase 8.3B - Clinic Data Request Review", () => {
     await login(page, "alpha-admin@example.test");
     await page.goto("/clinic/data-requests");
     await expect(page.getByRole("heading", { name: "Veri talebi kayıtları" })).toBeVisible();
-    await page.getByLabel("Sorumlu personel").first().selectOption({ label: "Alpha Staff" });
-    await page.getByRole("button", { name: "Personel ata" }).first().click();
+    const requestCard = page.locator(`article:has(input[name="dataRequestId"][value="${requestId}"])`);
+    await requestCard.getByLabel("Sorumlu personel").selectOption({ label: "Alpha Staff" });
+    await requestCard.getByRole("button", { name: "Personel ata" }).click();
     await page.reload();
-    await expect(page.getByText("Sorumlu:")).toBeVisible();
-    await expect(page.getByText("Personel atandı")).toBeVisible();
+    const requestCardAfterAssign = page.locator(`article:has(input[name="dataRequestId"][value="${requestId}"])`);
+    await expect(requestCardAfterAssign.getByText("Sorumlu: Alpha Staff")).toBeVisible();
+    await expect(requestCardAfterAssign.getByText("Personel atandı")).toBeVisible();
 
     const dbAfterAssign = await connect();
     try {
@@ -94,12 +96,16 @@ test.describe("Phase 8.3B - Clinic Data Request Review", () => {
     await declinedCard.getByLabel("Yeni durum").selectOption({ label: "Reddedildi" });
     await declinedCard.getByRole("button", { name: "Durumu güncelle" }).click();
     await page.reload();
-    await expect(page.getByText("manual_review_declined")).toBeVisible();
+    await expect(
+      page.locator(`article:has(input[name="dataRequestId"][value="${declinedId}"])`).getByText("manual_review_declined")
+    ).toBeVisible();
 
     const cancelledCard = page.locator(`article:has(input[name="dataRequestId"][value="${cancelledId}"])`);
     await cancelledCard.getByLabel("Yeni durum").selectOption({ label: "İptal edildi" });
     await cancelledCard.getByRole("button", { name: "Durumu güncelle" }).click();
     await page.reload();
-    await expect(page.getByText("manual_review_cancelled")).toBeVisible();
+    await expect(
+      page.locator(`article:has(input[name="dataRequestId"][value="${cancelledId}"])`).getByText("manual_review_cancelled")
+    ).toBeVisible();
   });
 });
