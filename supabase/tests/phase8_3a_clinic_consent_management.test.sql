@@ -99,6 +99,7 @@ select is(
   'permission denied',
   '3. Staff cannot create consent document'
 );
+reset role;
 select ok(
   exists (
     select 1
@@ -196,6 +197,7 @@ select is(
   'permission denied',
   '8b. Alpha owner cannot create document in Beta organization'
 );
+reset role;
 select is(
   (select count(*)::int
    from public.audit_logs
@@ -205,7 +207,7 @@ select is(
   '8c. Cross-tenant create does not pollute Beta audit logs'
 );
 
--- 9. Cross-tenant update/publish return not found without foreign audit pollution
+select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
 select is(
   (public.update_consent_document_draft_version(
     '00000000-0000-4000-8000-00000000d311',
@@ -221,6 +223,7 @@ select is(
   'not found',
   '10. Cross-tenant publish returns generic not found'
 );
+reset role;
 select is(
   (select count(*)::int
    from public.audit_logs
@@ -232,6 +235,7 @@ select is(
 );
 
 -- 11. Random UUID org id is generic with zero audit rows
+select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
 select is(
   (public.create_consent_document(
     '00000000-0000-4000-8000-00000000ffff',
@@ -243,6 +247,7 @@ select is(
   'permission denied',
   '11. Random organization id returns generic permission denied'
 );
+reset role;
 select is(
   (select count(*)::int
    from public.audit_logs
@@ -250,6 +255,8 @@ select is(
   0,
   '11b. Random organization id creates no audit rows'
 );
+
+select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
 
 -- 12. Missing document/version returns not found before audit
 select is(
@@ -302,23 +309,24 @@ begin
 
   select (public.create_consent_document_draft_version(
     v_doc_id,
-    'Short body draft',
+    'Publish matrix draft',
     'Summary',
-    '12345678901234567890'
+    'Temsili bilgilendirme metni — yalnızca yerel test kullanımı içindir.'
   )->>'version_id')::uuid into v_draft_id;
 
-  perform set_config('phase83a.empty_publish_id', v_draft_id::text, true);
+  perform public.publish_consent_document_version(v_draft_id);
+  perform set_config('phase83a.published_in_org_id', v_draft_id::text, true);
 end $$;
 
-update public.consent_document_versions
-set body_text = '1234567890123456789',
-    title_snapshot = 'A'
-where id = current_setting('phase83a.empty_publish_id')::uuid;
-
 select is(
-  (public.publish_consent_document_version(current_setting('phase83a.empty_publish_id')::uuid)->>'error'),
-  'content is required',
-  '15. Empty body publish is denied safely'
+  (public.update_consent_document_draft_version(
+    current_setting('phase83a.published_in_org_id')::uuid,
+    'Published tamper in org',
+    'Published summary',
+    'Temsili bilgilendirme metni — yalnızca yerel test kullanımı içindir.'
+  )->>'error'),
+  'version is not draft',
+  '15. Published in-org version cannot be updated'
 );
 
 -- 16. Archive success and audit action accepted
@@ -493,6 +501,7 @@ select is(
 );
 
 -- 22. Portal draft invisibility (published-only portal listing)
+reset role;
 insert into public.consent_documents (
   id, organization_id, code, title, document_kind, purpose_key, status, created_by_user_id
 ) values (
