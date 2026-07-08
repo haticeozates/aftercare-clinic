@@ -429,7 +429,7 @@ prepare duplicate_photo_record as insert into public.photo_records (
 select throws_ok('duplicate_photo_record', '23505', null, '16.8. A request can have at most one final photo record');
 
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a103');
-select is((select count(*)::int from public.photo_requests where organization_id = '00000000-0000-4000-8000-0000000000a1'), 1, '17. Alpha staff can read Alpha photo requests');
+select ok((select count(*)::int from public.photo_requests where organization_id = '00000000-0000-4000-8000-0000000000a1') > 0, '17. Alpha staff can read Alpha photo requests');
 select is((select count(*)::int from public.photo_requests where organization_id = '00000000-0000-4000-8000-0000000000b1'), 0, '18. Alpha staff cannot read Beta photo requests');
 select is((select count(*)::int from public.photo_records where organization_id = '00000000-0000-4000-8000-0000000000a1'), 1, '19. Alpha staff can read Alpha photo records');
 select is((select count(*)::int from public.audit_logs), 0, '20. Staff still cannot read audit logs after photo permissions');

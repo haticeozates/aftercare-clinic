@@ -41,7 +41,9 @@ describe("authorization primitives", () => {
       "alert.resolve",
       "alert.dismiss",
       "photo.read",
-      "photo.view"
+      "photo.view",
+      "consent.read",
+      "data_request.read"
     ]);
     expect(resolveRolePermissions("staff")).not.toContain("photo.request.manage");
   });

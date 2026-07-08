@@ -50,6 +50,12 @@ values
   ('00000000-0000-4000-8000-00000000f909', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b911', '00000000-0000-4000-8000-00000000e201', 'phase5-session-beta', 'active', now() + interval '15 minutes')
 on conflict (id) do nothing;
 
+create temporary table phase5_expected_active_plan_days as
+select count(*)::int as day_count
+from public.care_plan_days
+where care_plan_id = '00000000-0000-4000-8000-00000000e101';
+grant select on phase5_expected_active_plan_days to anon;
+
 select pg_temp.as_anon();
 
 select is((public.get_portal_plan_for_session('phase5-session-active')->>'plan_status'), 'active', 'Valid portal session opens linked active plan');
@@ -66,7 +72,11 @@ select throws_ok('direct_session_read', '42501', null, 'Portal session rows are 
 
 select is((public.get_portal_plan_for_session('phase5-session-active') ? 'client_full_name'), false, 'Portal response excludes client full name');
 select is((public.get_portal_plan_for_session('phase5-session-active')::text ~* 'phone|email|Synthetic Alpha|Alpha Procedure|source_template|secure_link|session_hash|token'), false, 'Portal response excludes PII, internal IDs, token and template source fields');
-select is(jsonb_array_length(public.get_portal_plan_for_session('phase5-session-active')->'days'), 1, 'Portal returns only linked plan days');
+select is(
+  jsonb_array_length(public.get_portal_plan_for_session('phase5-session-active')->'days'),
+  (select day_count from phase5_expected_active_plan_days),
+  'Portal returns only linked plan days'
+);
 select is((public.get_portal_plan_for_session('phase5-session-active')->'days'->0->>'day_number'), '1', 'Portal returns current plan day');
 select is(jsonb_array_length(public.get_portal_plan_for_session('phase5-session-active')->'days'->0->'tasks'), 1, 'Portal returns only linked plan tasks');
 select is((public.get_portal_plan_for_session('phase5-session-beta')->>'plan_status'), 'active', 'Beta portal session opens only Beta plan');

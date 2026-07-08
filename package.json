@@ -19,6 +19,8 @@
     "test:symptoms": "vitest run tests/unit/symptoms.test.ts",
     "test:alerts": "vitest run tests/unit/alerts.test.ts",
     "test:photos": "vitest run tests/unit/photos.test.ts tests/unit/photo-upload-ui.test.ts tests/unit/photo-view-ui.test.ts tests/unit/photo-cleanup.test.ts",
+    "test:consent": "vitest run tests/unit/consent.test.ts",
+    "test:data-requests": "vitest run tests/unit/data-requests.test.ts",
     "test:ui": "vitest run tests/unit/ui.test.tsx",
     "test:auth": "playwright test tests/e2e/phase2-auth-role.spec.ts --grep \"login|reload|logout|unauthorized\" --project=chromium",
     "test:e2e:phase2": "playwright test tests/e2e/phase2-auth-role.spec.ts --project=chromium",
@@ -30,6 +32,7 @@
     "test:e2e:phase7-ui": "playwright test tests/e2e/phase7-portal-upload-ui.spec.ts --project=chromium",
     "test:e2e:phase7-view": "playwright test tests/e2e/phase7-clinic-photo-viewer.spec.ts --project=chromium",
     "test:e2e:phase7-cleanup": "PHOTO_CLEANUP_SECRET=local-photo-cleanup-secret-32-chars playwright test tests/e2e/phase7-photo-cleanup.spec.ts --project=chromium",
+    "test:e2e:phase8": "playwright test tests/e2e/phase8-consent-data-requests.spec.ts --project=chromium",
     "test:e2e:design": "playwright test tests/e2e/phase6-ui-design.spec.ts --project=chromium",
     "test:rls": "npm run test:rls:static",
     "test:rls:static": "vitest run tests/rls/sql-policy.test.ts",
@@ -52,7 +55,8 @@
     "verify:phase5": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:e2e:phase5 && npm run verify && npm audit",
     "verify:phase6": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:e2e:phase6 && npm run verify && npm audit",
     "verify:phase6-ui": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:e2e:phase2 && npm run test:e2e:phase3 && npm run test:e2e:phase4 && npm run test:e2e:phase5 && npm run test:e2e:phase6 && npm run test:ui && npm run test:e2e:design && npm run verify && npm audit",
-    "verify:phase7": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run test:e2e:phase7 && npm run test:e2e:phase7-ui && npm run test:e2e:phase7-view && npm run test:e2e:phase7-cleanup && npm run verify && npm audit"
+    "verify:phase7": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run test:e2e:phase7 && npm run test:e2e:phase7-ui && npm run test:e2e:phase7-view && npm run test:e2e:phase7-cleanup && npm run verify && npm audit",
+    "verify:phase8": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run test:consent && npm run test:data-requests && npm run test:e2e:phase7 && npm run test:e2e:phase7-ui && npm run test:e2e:phase7-view && npm run test:e2e:phase7-cleanup && npm run test:e2e:phase8 && npm run verify && npm audit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
