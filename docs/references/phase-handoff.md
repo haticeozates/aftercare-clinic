@@ -17,7 +17,7 @@ This document is the practical continuation map for the production project. It r
 
 - Repository: `https://github.com/haticeozates/aftercare-clinic.git`
 - Branch: `main`
-- Current functional scope: Faz 0 through Faz 8.3B
+- Current functional scope: Faz 0 through Faz 9A Stage 1 (in progress; not fully closed)
 - Latest exact commit should be verified with `git log --oneline -5` before starting new work.
 - `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and `.env.example`.
 
@@ -378,9 +378,38 @@ npm run test:e2e:phase8
 npm run verify:phase8
 ```
 
+## Phase 9A Stage 1 — Durable Rate Limiting (in progress)
+
+Stage 1 replaces process-local abuse hooks on security-critical portal routes with a durable PostgreSQL-backed shared limiter.
+
+Delivered in Stage 1:
+
+- Migration `20260709090000_phase9a_durable_rate_limiting.sql` with atomic `consume_rate_limit` RPC and bounded `cleanup_expired_rate_limit_buckets` helper.
+- Opaque HMAC key derivation via dedicated `RATE_LIMIT_PEPPER` (separate from audit and portal token peppers).
+- Durable adapter for production/local Supabase; deterministic memory adapter for unit tests only.
+- Fail-closed behavior when the durable store is unavailable.
+- Migrated call sites: `/care/t/[token]` and `/care/session/tasks`.
+- pgTAP `phase9a_durable_rate_limiting.test.sql`, unit/integration coverage, E2E `phase9a-rate-limit.spec.ts`.
+
+Not in Stage 1:
+
+- Environment-wide error/log redaction hardening, security headers, cache/no-store sweep (Stage 2).
+- Production cron wiring for expired bucket cleanup.
+- Rate limits on photo upload, consent decisions, or data-request portal mutations unless added in a later 9A stage with explicit scope.
+
+Verification:
+
+```bash
+npm run test:rate-limit
+npm run test:e2e:phase9a-rate-limit
+npm run test:secure-links
+npm run test:portal
+npm run verify:phase8
+```
+
 ## Next Phase
 
-Phase 8 may continue with follow-up work outside the completed 8.3B boundary. **Faz 8.3C is referenced in planning notes but has no authoritative scope definition in this repository yet** — do not treat it as completed or in-progress without an explicit product decision.
+Phase 9A continues with Stage 2 environment/error/log hardening and Stage 3 CI/pre-deploy closure. **Faz 9B is not started.** Do not treat Faz 9A as fully closed until the remaining stages complete.
 
 Before starting new work:
 

@@ -26,11 +26,13 @@ request body dumps, health text, tokens, secrets, full contact details or storag
 
 Raw secure-link tokens must be processed only server-side, stored only as hashes with a
 server-only pepper, and exchanged into short-lived HttpOnly portal session cookies.
-The current token validation path has a local rate-limit hook only; a durable shared
-rate limiter is required before production use with real data.
+Secure-link token exchange and portal task mutations use a durable PostgreSQL-backed shared
+rate limiter with opaque HMAC-derived keys. Process-local counters are not used on these
+security-critical routes. If the durable store is unavailable, the route fails closed and
+returns a generic response without leaking token or tenant existence.
 
-Portal task mutation routes also expose only a local abuse-control hook in this phase.
-Distributed rate limiting must be added before processing real client care activity.
+Portal task mutation routes also use the shared durable limiter in this stage. Distributed
+rate limiting cleanup for expired buckets is not wired to production cron yet.
 
 ## Reporting
 

@@ -100,7 +100,7 @@ E2E requires Playwright chromium and running dev server (Playwright config handl
 From [Phase Handoff](../references/phase-handoff.md):
 
 - [ ] `.env.local` not tracked
-- [ ] Service role keys, peppers, cleanup secrets not in browser bundles
+- [ ] Service role keys, peppers (`AUDIT_LOG_PEPPER`, `RATE_LIMIT_PEPPER`), cleanup secrets not in browser bundles
 - [ ] Audit metadata free of body text, PII, tokens, storage keys
 - [ ] Generated files (`.next`, test results) not committed
 - [ ] `npm audit` clean for phase gates that include it

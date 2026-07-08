@@ -4,7 +4,7 @@ Production-oriented foundation for AfterCare Clinic. This project is intentional
 
 ## Current Scope
 
-Included through Faz 8.3B:
+Included through Faz 9A Stage 1:
 
 - Next.js App Router + TypeScript foundation
 - Local Supabase/Postgres development workflow
@@ -33,6 +33,7 @@ Included through Faz 8.3B:
 - Clinic consent document management (draft, publish, retire, archive)
 - Clinic client document assignment create/cancel with portal visibility boundaries
 - Clinic data request review with staff assignee assignment and event history
+- Durable shared PostgreSQL rate limiting for security-critical portal routes
 - Synthetic local/test seed and deterministic test fixtures
 
 ## Explicitly Out Of Scope
@@ -81,6 +82,7 @@ Server-only:
 - `SUPABASE_PROJECT_REF`
 - `PRODUCTION_SUPABASE_PROJECT_REF`
 - `AUDIT_LOG_PEPPER`
+- `RATE_LIMIT_PEPPER`
 - `PHOTO_CLEANUP_SECRET`
 
 Public:
@@ -88,7 +90,7 @@ Public:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Secrets must not be logged. `SUPABASE_SERVICE_ROLE_KEY`, `AUDIT_LOG_PEPPER` and cleanup secrets must never be prefixed with `NEXT_PUBLIC_` and must never be imported by client components.
+Secrets must not be logged. `SUPABASE_SERVICE_ROLE_KEY`, `AUDIT_LOG_PEPPER`, `RATE_LIMIT_PEPPER` and cleanup secrets must never be prefixed with `NEXT_PUBLIC_` and must never be imported by client components.
 
 ## Test Commands
 
@@ -103,6 +105,7 @@ npm run test:auth
 npm run test:photos
 npm run test:consent
 npm run test:data-requests
+npm run test:rate-limit
 npm run test:portal-consent
 npm run test:portal-data-requests
 npm run test:e2e:phase7
@@ -110,6 +113,7 @@ npm run test:e2e:phase7-ui
 npm run test:e2e:phase7-view
 npm run test:e2e:phase7-cleanup
 npm run test:e2e:phase8
+npm run test:e2e:phase9a-rate-limit
 npm run build
 npm run verify
 npm run verify:phase8
@@ -117,7 +121,7 @@ npm run verify:phase8
 
 ## Security Notes
 
-Secure link validation and portal mutations use local rate-limit hooks where durable distributed limiting is not yet part of the product. A shared durable limiter remains a future hardening task before real production data.
+Secure link validation and portal task mutations use a durable PostgreSQL-backed shared rate limiter for multi-instance safety. Process-local counters are not used on security-critical routes. Store failures fail closed with generic responses. Expired bucket cleanup is not wired to production cron in this stage.
 
 Photo upload uses a private incoming bucket, server-side validation, WebP normalization, private final storage and short-lived signed view URLs. Raw tokens, signed URLs and storage keys must not be written to audit metadata or user-facing logs.
 
