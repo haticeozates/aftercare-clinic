@@ -64,5 +64,6 @@ test.describe("Phase 8.3B - Clinic Consent Assignment", () => {
     await page.getByRole("button", { name: "Evet, iptal et" }).click();
     await expect(page.getByText("Atama iptal edildi.")).toBeVisible();
     await expect(page.getByText("İptal edildi")).toBeVisible();
+    await expect(page.getByText(/İptal eden:/)).toBeVisible();
   });
 });

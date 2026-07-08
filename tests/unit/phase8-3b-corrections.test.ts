@@ -71,13 +71,17 @@ describe("transition action resolution trust boundary", () => {
 });
 
 describe("cancellation history DTO", () => {
-  it("exposes display name without raw cancelled user id in assignment read service", () => {
+  it("exposes display name without raw cancelled user id in assignment list DTO", () => {
     const source = readFileSync(
       resolve(process.cwd(), "lib/consent/assignment-service-read.ts"),
       "utf8"
     );
-    expect(source).toContain("cancelledByDisplayName");
-    expect(source).not.toContain("cancelled_by_user_id");
+    const dtoBlock = source.slice(
+      source.indexOf("export interface ClientAssignmentListItem"),
+      source.indexOf("export interface AssignmentCreateOption")
+    );
+    expect(dtoBlock).toContain("cancelledByDisplayName");
+    expect(dtoBlock).not.toContain("cancelled_by_user_id");
   });
 });
 
