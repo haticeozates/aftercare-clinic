@@ -3,6 +3,7 @@ import { getPortalPlan } from "@/lib/portal/service";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/formatters";
 import { PortalTaskButton } from "@/app/care/session/task-button";
 import { CheckInForm } from "@/app/care/session/check-in-form";
+import { PhotoUploadCard } from "@/components/care/photo-upload-card";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export default async function CareSessionPage() {
   }
 
   const todayDay = plan.days.find((day) => day.scheduledDate === plan.today) ?? plan.days[0];
+  const photoRequestDays = plan.days.filter((day) => day.photoRequests.length > 0);
 
   return (
     <main className="care-shell">
@@ -65,6 +67,16 @@ export default async function CareSessionPage() {
           options={plan.checkIn.options}
           alreadySubmitted={plan.checkIn.submittedDayIds.includes(todayDay.id)}
         />
+      ) : null}
+
+      {photoRequestDays.length ? (
+        <div className="stack">
+          {photoRequestDays.flatMap((day) =>
+            day.photoRequests.map((photoRequest) => (
+              <PhotoUploadCard key={photoRequest.id} request={photoRequest} mode={plan.mode} availability={day.availability} />
+            ))
+          )}
+        </div>
       ) : null}
 
       <section className="care-section stack" aria-labelledby="days-heading">

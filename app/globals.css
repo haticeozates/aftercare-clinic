@@ -740,6 +740,27 @@ tr:hover td {
   margin-bottom: var(--space-1);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+}
+
+.photo-preview {
+  width: min(160px, 38vw);
+  height: 120px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-surface-muted);
+}
+
 .card-list,
 .record-list {
   display: grid;
