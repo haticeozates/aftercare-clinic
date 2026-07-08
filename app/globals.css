@@ -967,6 +967,19 @@ tr:hover td {
   padding: var(--space-5);
 }
 
+.document-body {
+  max-height: min(52vh, 520px);
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  padding: var(--space-4);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.7;
+}
+
 .secure-photo-frame {
   display: grid;
   place-items: center;

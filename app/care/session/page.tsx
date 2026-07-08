@@ -4,6 +4,10 @@ import { formatDisplayDate, formatDisplayDateTime } from "@/lib/formatters";
 import { PortalTaskButton } from "@/app/care/session/task-button";
 import { CheckInForm } from "@/app/care/session/check-in-form";
 import { PhotoUploadCard } from "@/components/care/photo-upload-card";
+import { PortalDocumentsSection } from "@/components/care/portal-documents-section";
+import { PortalDataRequestForm } from "@/components/care/portal-data-request-form";
+import { getPortalDocumentAssignments } from "@/lib/consent/portal-service";
+import { getPortalDataRequests } from "@/lib/data-requests/portal-service";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +17,7 @@ export default async function CareSessionPage() {
     redirect("/care/invalid");
   }
 
+  const [documentAssignments, dataRequests] = await Promise.all([getPortalDocumentAssignments(), getPortalDataRequests()]);
   const todayDay = plan.days.find((day) => day.scheduledDate === plan.today) ?? plan.days[0];
   const photoRequestDays = plan.days.filter((day) => day.photoRequests.length > 0);
 
@@ -78,6 +83,9 @@ export default async function CareSessionPage() {
           )}
         </div>
       ) : null}
+
+      <PortalDocumentsSection assignments={documentAssignments} />
+      <PortalDataRequestForm initialRequests={dataRequests} />
 
       <section className="care-section stack" aria-labelledby="days-heading">
         <h2 id="days-heading">Plan günleri</h2>
