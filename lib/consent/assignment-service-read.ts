@@ -25,6 +25,7 @@ export interface ClientAssignmentListItem {
   assignedAt: string;
   completedAt: string | null;
   cancelledAt: string | null;
+  cancelledByDisplayName: string | null;
 }
 
 export interface AssignmentCreateOption {
@@ -47,6 +48,7 @@ type AssignmentRow = {
   assigned_at: string;
   completed_at: string | null;
   cancelled_at: string | null;
+  cancelled_by_user_id: string | null;
   consent_document_versions: {
     version_number: number;
     title_snapshot: string;
@@ -63,10 +65,16 @@ function relationOne<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-function mapAssignmentRow(row: AssignmentRow): ClientAssignmentListItem {
+function mapAssignmentRow(
+  row: AssignmentRow,
+  cancelledByNames: Map<string, string>
+): ClientAssignmentListItem {
   const version = relationOne(row.consent_document_versions);
   const document = relationOne(version?.consent_documents ?? null);
   const plan = relationOne(row.care_plans);
+  const cancelledByDisplayName = row.cancelled_by_user_id
+    ? (cancelledByNames.get(row.cancelled_by_user_id) ?? "Bilinmeyen personel")
+    : null;
 
   return {
     id: row.id,
@@ -80,8 +88,29 @@ function mapAssignmentRow(row: AssignmentRow): ClientAssignmentListItem {
     required: row.required,
     assignedAt: row.assigned_at,
     completedAt: row.completed_at,
-    cancelledAt: row.cancelled_at
+    cancelledAt: row.cancelled_at,
+    cancelledByDisplayName
   };
+}
+
+async function loadCancelledByDisplayNames(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  userIds: string[]
+) {
+  if (userIds.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("id,display_name")
+    .in("id", userIds);
+
+  if (error) {
+    return new Map<string, string>();
+  }
+
+  return new Map(data.map((row) => [row.id, row.display_name]));
 }
 
 export async function listClientDocumentAssignments(clientId: string) {
@@ -91,7 +120,7 @@ export async function listClientDocumentAssignments(clientId: string) {
   const { data, error } = await supabase
     .from("client_document_assignments")
     .select(
-      `id,care_plan_id,assignment_type,required,status,assigned_at,completed_at,cancelled_at,
+      `id,care_plan_id,assignment_type,required,status,assigned_at,completed_at,cancelled_at,cancelled_by_user_id,
       consent_document_versions(version_number,title_snapshot,consent_documents(code,title,document_kind)),
       care_plans(id,status)`
     )
@@ -104,8 +133,17 @@ export async function listClientDocumentAssignments(clientId: string) {
     throw new Error("Belge atamaları alınamadı.");
   }
 
+  const cancelledByIds = [
+    ...new Set(
+      data
+        .map((row) => row.cancelled_by_user_id)
+        .filter((userId): userId is string => Boolean(userId))
+    )
+  ];
+  const cancelledByNames = await loadCancelledByDisplayNames(supabase, cancelledByIds);
+
   return {
-    assignments: data.map(mapAssignmentRow),
+    assignments: data.map((row) => mapAssignmentRow(row, cancelledByNames)),
     canManage: hasPermission(context.membership, "consent.manage")
   };
 }

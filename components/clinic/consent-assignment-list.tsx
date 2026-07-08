@@ -130,6 +130,14 @@ export function ConsentAssignmentList({
                 {assignment.required ? <span className="badge">Zorunlu</span> : null}
                 {assignment.carePlanLabel ? <span className="badge">{assignment.carePlanLabel}</span> : null}
               </div>
+              {assignment.status === "cancelled" && assignment.cancelledAt ? (
+                <p className="muted">
+                  İptal edildi · {formatDisplayDateTime(assignment.cancelledAt)}
+                  {assignment.cancelledByDisplayName
+                    ? ` · İptal eden: ${assignment.cancelledByDisplayName}`
+                    : null}
+                </p>
+              ) : null}
             </div>
             {canManage && assignment.status === "pending" ? (
               <button className="button secondary" type="button" onClick={() => setCancelTarget(assignment)}>
