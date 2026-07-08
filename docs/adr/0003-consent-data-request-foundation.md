@@ -71,3 +71,32 @@ The portal UI does not collect signature images, IP-based legal proof, browser f
 Audit metadata for portal document and data-request events is allowlisted. It must not contain body text, summary text, free-form text, client identifiers, phone numbers, email addresses, portal tokens, session hashes or raw request payloads.
 
 Clinic review, assignment handling, completion workflows and richer document management screens are intentionally deferred to Phase 8.3.
+
+## Phase 8.3A Clinic Document Management Correction
+
+Phase 8.3A completes the clinic-side document management workflow without changing portal behavior or starting assignment/data-request review (Phase 8.3B).
+
+Technical workflow:
+
+- Clinic users with `consent.manage` create documents with an initial draft version.
+- Draft versions are editable until published through an explicit confirmation dialog.
+- Published and retired versions are immutable plain-text records; the UI does not expose update forms for them.
+- Only one active draft may exist per document at a time.
+- Owners/admins may create a new draft from the latest published or retired version when the document is active and no draft exists.
+- Active documents may be archived; archived documents become read-only and reject new drafts or publish actions.
+- Published version history is preserved after archive.
+
+Audit boundary:
+
+- Audit metadata for clinic consent management events does not include body text, summary text or title snapshots.
+- Denied manage attempts are logged only for authenticated organization members.
+
+Legal boundary:
+
+- This workflow is technical recordkeeping only. It does not guarantee legal validity, enforceability or regulatory compliance.
+- Synthetic placeholder text remains for local testing only.
+
+Deferred to Phase 8.3B:
+
+- Client document assignment UI and workflows.
+- Clinic data request review and staff assignment handling.
