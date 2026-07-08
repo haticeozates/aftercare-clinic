@@ -20,7 +20,6 @@ import { createPhotoStorageAdapter } from "@/lib/photos/storage";
 
 const PORTAL_COOKIE_NAME = "aftercare_portal_session";
 const PHOTO_INTENT_TTL_MS = 5 * 60 * 1000;
-const PHOTO_INTENT_HOURLY_LIMIT = 3;
 
 async function getPortalSessionHash() {
   const cookieStore = await cookies();
@@ -34,6 +33,22 @@ async function getPortalSessionHash() {
 
 function safeError(code: unknown) {
   return mapPhotoUploadError(code);
+}
+
+function intentStatusForError(code: unknown) {
+  if (code === "unsupported_mime_type" || code === "file_too_large") {
+    return 400;
+  }
+
+  if (code === "rate_limited") {
+    return 429;
+  }
+
+  if (code === "intent_processing" || code === "already_finalized") {
+    return 409;
+  }
+
+  return 403;
 }
 
 export async function requestPortalPhotoUploadIntent(input: {
@@ -55,129 +70,39 @@ export async function requestPortalPhotoUploadIntent(input: {
   }
 
   const supabase = createAdminSupabaseClient();
-  const { data: sessionId, error: sessionError } = await supabase.rpc("validate_portal_session_hash", {
-    target_session_hash: sessionHash
-  });
-
-  if (sessionError || !sessionId) {
-    return { error: safeError("request_invalid"), status: 403 };
-  }
-
-  const { data: session } = await supabase
-    .from("portal_sessions")
-    .select("id, organization_id, care_plan_id")
-    .eq("id", sessionId)
-    .single();
-
-  if (!session) {
-    return { error: safeError("request_invalid"), status: 403 };
-  }
-
-  const { data: request } = await supabase
-    .from("photo_requests")
-    .select("id, organization_id, care_plan_id, care_plan_day_id, status")
-    .eq("id", input.photoRequestId)
-    .eq("organization_id", session.organization_id)
-    .eq("care_plan_id", session.care_plan_id)
-    .single();
-
-  if (!request || request.status !== "active") {
-    return { error: safeError("request_invalid"), status: 403 };
-  }
-
-  const { data: plan } = await supabase
-    .from("care_plans")
-    .select("status")
-    .eq("id", session.care_plan_id)
-    .eq("organization_id", session.organization_id)
-    .single();
-
-  if (!plan || plan.status === "stopped" || plan.status === "completed") {
-    return { error: safeError("request_invalid"), status: 403 };
-  }
-
-  const { data: existingRecord } = await supabase
-    .from("photo_records")
-    .select("id")
-    .eq("organization_id", session.organization_id)
-    .eq("photo_request_id", request.id)
-    .maybeSingle();
-
-  if (existingRecord) {
-    return { error: safeError("request_invalid"), status: 409 };
-  }
-
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count: recentIntentCount } = await supabase
-    .from("photo_upload_intents")
-    .select("id", { count: "exact", head: true })
-    .eq("photo_request_id", request.id)
-    .eq("portal_session_id", session.id)
-    .gte("created_at", oneHourAgo);
-
-  if ((recentIntentCount ?? 0) >= PHOTO_INTENT_HOURLY_LIMIT) {
-    return { error: safeError("upload_failed"), status: 429 };
-  }
-
-  const { data: activeIntents } = await supabase
-    .from("photo_upload_intents")
-    .select("id, status, processing_started_at")
-    .eq("photo_request_id", request.id)
-    .eq("portal_session_id", session.id)
-    .in("status", ["pending", "processing"]);
-
-  const activeProcessingIntent = activeIntents?.find((intent) => {
-    if (intent.status !== "processing" || !intent.processing_started_at) {
-      return false;
-    }
-
-    return new Date(intent.processing_started_at).getTime() > Date.now() - 10 * 60 * 1000;
-  });
-
-  if (activeProcessingIntent) {
-    return { error: safeError("upload_failed"), status: 409 };
-  }
-
-  const staleIntentIds = activeIntents?.map((intent) => intent.id) ?? [];
-  if (staleIntentIds.length > 0) {
-    await supabase.from("photo_upload_intents").update({ status: "expired" }).in("id", staleIntentIds);
-  }
-
   const incomingObjectKey = createOpaquePhotoObjectKey("incoming");
   const expiresAt = new Date(Date.now() + PHOTO_INTENT_TTL_MS).toISOString();
-  const { data: intent, error: insertError } = await supabase
-    .from("photo_upload_intents")
-    .insert({
-      organization_id: session.organization_id,
-      photo_request_id: request.id,
-      care_plan_id: request.care_plan_id,
-      care_plan_day_id: request.care_plan_day_id,
-      portal_session_id: session.id,
-      incoming_object_key: incomingObjectKey,
-      declared_mime_type: input.declaredMime as PhotoAllowedMimeType,
-      declared_size_bytes: input.sizeBytes,
-      expires_at: expiresAt
-    })
-    .select("id, incoming_object_key, expires_at")
-    .single();
+  const { data, error } = await supabase.rpc("create_photo_upload_intent_for_portal", {
+    target_session_hash: sessionHash,
+    target_photo_request_id: input.photoRequestId,
+    target_declared_mime_type: input.declaredMime,
+    target_declared_size_bytes: input.sizeBytes,
+    target_incoming_object_key: incomingObjectKey,
+    target_expires_at: expiresAt
+  });
 
-  if (insertError || !intent) {
-    return { error: safeError("upload_failed"), status: 409 };
+  if (error || !data) {
+    return { error: safeError("upload_failed"), status: 500 };
+  }
+
+  const intent = data as Record<string, unknown>;
+  if (intent.status !== "created") {
+    const code = String(intent.error ?? "request_invalid");
+    return { error: safeError(code), status: intentStatusForError(code) };
   }
 
   const storage = createPhotoStorageAdapter(supabase);
-  const signed = await storage.createSignedIncomingUpload(intent.incoming_object_key);
+  const signed = await storage.createSignedIncomingUpload(String(intent.incoming_object_key ?? ""));
   if (!signed) {
-    await supabase.from("photo_upload_intents").update({ status: "failed", failed_at: new Date().toISOString(), failure_reason_code: "storage_write_failed" }).eq("id", intent.id);
     return { error: safeError("upload_failed"), status: 500 };
   }
 
   return {
     data: buildPhotoUploadCredential({
-      intentId: intent.id,
+      intentId: String(intent.intent_id ?? ""),
       path: signed.path,
       token: signed.token,
-      expiresAt: intent.expires_at
+      expiresAt: String(intent.expires_at ?? expiresAt)
     })
   };
 }

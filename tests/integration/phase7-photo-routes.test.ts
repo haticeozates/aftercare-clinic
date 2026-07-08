@@ -18,4 +18,14 @@ describe("phase 7 photo upload route contracts", () => {
     expect(routeSource("app/care/session/photos/intents/route.ts")).toContain('export const dynamic = "force-dynamic"');
     expect(routeSource("app/care/session/photos/finalize/route.ts")).toContain('export const dynamic = "force-dynamic"');
   });
+
+  it("keeps portal photo intent authorization behind the narrow RPC", () => {
+    const source = routeSource("lib/photos/service.ts");
+
+    expect(source).toContain("create_photo_upload_intent_for_portal");
+    expect(source).not.toContain('.from("photo_requests")');
+    expect(source).not.toContain('.from("portal_sessions")');
+    expect(source).not.toContain('.from("care_plans")');
+    expect(source).not.toContain('.from("photo_upload_intents")');
+  });
 });

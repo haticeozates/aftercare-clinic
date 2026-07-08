@@ -38,6 +38,60 @@ select ok((select relrowsecurity from pg_class where oid = 'public.photo_upload_
 select ok((select relrowsecurity from pg_class where oid = 'public.photo_records'::regclass), '7. photo_records RLS is enabled');
 select has_function('public', 'claim_photo_upload_intent_for_portal', array['text', 'uuid'], '7.1. Portal finalize claim RPC exists');
 select has_function('public', 'record_finalized_photo_for_portal', array['text', 'uuid', 'uuid', 'text', 'integer', 'integer', 'integer', 'text'], '7.2. Portal finalized photo recording RPC exists');
+select has_function('public', 'create_photo_upload_intent_for_portal', array['text', 'uuid', 'text', 'integer', 'text', 'timestamp with time zone'], '7.3. Portal upload intent creation RPC exists');
+
+select ok(
+  exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('create_photo_upload_intent_for_portal', 'claim_photo_upload_intent_for_portal', 'record_finalized_photo_for_portal')
+      and p.prosecdef
+      and p.proconfig @> array['search_path=public, pg_temp']
+    having count(*) = 3
+  ),
+  '7.4. Photo upload RPCs are SECURITY DEFINER with explicit search_path'
+);
+
+select is(
+  (
+    select count(*)::int
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name in ('photo_requests', 'photo_upload_intents', 'photo_records', 'portal_sessions', 'care_plans')
+      and grantee = 'service_role'
+      and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+  ),
+  0,
+  '7.5. service_role has no broad direct table DML grant for portal photo route authorization'
+);
+
+select is(
+  (
+    select count(*)::int
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('create_photo_upload_intent_for_portal', 'claim_photo_upload_intent_for_portal', 'record_finalized_photo_for_portal')
+      and coalesce(p.proacl::text, '') like '%service_role%'
+  ),
+  3,
+  '7.6. service_role can execute only the narrow photo upload RPCs needed by server routes'
+);
+
+select is(
+  (
+    select count(*)::int
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('create_photo_upload_intent_for_portal', 'claim_photo_upload_intent_for_portal', 'record_finalized_photo_for_portal')
+      and coalesce(p.proacl::text, '') like '{=X/%'
+  ),
+  0,
+  '7.7. PUBLIC execute is not granted on photo upload RPCs'
+);
 
 select is(
   (select count(*)::int from storage.buckets where id in ('care-photo-incoming', 'care-photos') and public = false),
