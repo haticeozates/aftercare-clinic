@@ -37,7 +37,11 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "alert.dismiss",
     "photo.read",
     "photo.request.manage",
-    "photo.view"
+    "photo.view",
+    "consent.read",
+    "consent.manage",
+    "data_request.read",
+    "data_request.manage"
   ],
   organization_admin: [
     "organization.read",
@@ -69,7 +73,11 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "alert.dismiss",
     "photo.read",
     "photo.request.manage",
-    "photo.view"
+    "photo.view",
+    "consent.read",
+    "consent.manage",
+    "data_request.read",
+    "data_request.manage"
   ],
   staff: [
     "organization.read",
@@ -90,7 +98,9 @@ const rolePermissions: Record<RoleKey, PermissionKey[]> = {
     "alert.resolve",
     "alert.dismiss",
     "photo.read",
-    "photo.view"
+    "photo.view",
+    "consent.read",
+    "data_request.read"
   ]
 };
 

@@ -32,7 +32,11 @@ export type PermissionKey =
   | "alert.dismiss"
   | "photo.read"
   | "photo.request.manage"
-  | "photo.view";
+  | "photo.view"
+  | "consent.read"
+  | "consent.manage"
+  | "data_request.read"
+  | "data_request.manage";
 
 export type MembershipStatus = "active" | "inactive";
 

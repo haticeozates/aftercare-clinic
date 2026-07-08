@@ -74,7 +74,15 @@ export const AUDIT_ACTIONS = [
   "photo.view_authorized",
   "photo.view_denied",
   "photo.cleanup_completed",
-  "photo.cleanup_failed"
+  "photo.cleanup_failed",
+  "consent_document.created",
+  "consent_version.created",
+  "consent_version.published",
+  "consent_assignment.created",
+  "consent.event_recorded",
+  "data_request.created",
+  "data_request.status_changed",
+  "data_request.assigned"
 ] as const;
 
 export const AUDIT_ENTITY_TYPES = [
@@ -102,7 +110,13 @@ export const AUDIT_ENTITY_TYPES = [
   "alert_event",
   "photo_request",
   "photo_upload_intent",
-  "photo_record"
+  "photo_record",
+  "consent_document",
+  "consent_document_version",
+  "client_document_assignment",
+  "client_document_event",
+  "data_request",
+  "data_request_event"
 ] as const;
 export const AUDIT_RESULTS = ["success", "failure", "denied"] as const;
 export const AUDIT_ACTOR_TYPES = ["user", "system"] as const;
@@ -145,7 +159,10 @@ const allowedMetadataKeys = new Set([
   "height",
   "result_reason_code",
   "retry",
-  "idempotent_result"
+  "idempotent_result",
+  "document_kind",
+  "request_type",
+  "actor_role"
 ]);
 
 export type SafeAuditMetadata = Record<string, string | number | boolean | null>;

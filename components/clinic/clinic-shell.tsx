@@ -10,7 +10,9 @@ const navItems = [
   { href: "/clinic/procedures", label: "İşlemler", icon: "✦" },
   { href: "/clinic/templates", label: "Bakım Şablonları", icon: "▣" },
   { href: "/clinic/plans", label: "Bakım Planları", icon: "◎" },
-  { href: "/clinic/alerts", label: "Takip Bildirimleri", icon: "!" }
+  { href: "/clinic/alerts", label: "Takip Bildirimleri", icon: "!" },
+  { href: "/clinic/consent-documents", label: "Onay Belgeleri", icon: "◍" },
+  { href: "/clinic/data-requests", label: "Veri Talepleri", icon: "◇" }
 ];
 
 function roleLabel(roleKey: string) {
