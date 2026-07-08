@@ -2,11 +2,13 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   timeout: 30_000,
   expect: {
     timeout: 8_000
   },
   fullyParallel: false,
+  workers: 1,
   forbidOnly: true,
   reporter: [["list"]],
   use: {
@@ -23,7 +25,7 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000/login",
-    reuseExistingServer: true,
+    reuseExistingServer: process.env.PW_REUSE_EXISTING_SERVER === "true",
     timeout: 30_000
   }
 });
