@@ -86,3 +86,26 @@ The incoming object `path` is not a credential by itself. It is a random opaque 
 Phase 7.3A connects the portal UI to the existing intent, signed upload and finalize flow without adding clinic viewing or signed view URLs. The browser keeps `path`, `token` and `intentId` only in component memory for the active upload attempt. They must not be written to localStorage, sessionStorage, URL parameters, audit metadata or logs. The portal UI can display request label, required/optional state and upload completion state, but it must not display final storage keys, incoming keys, raw tokens, original filenames, client contact data or any automated clinical interpretation.
 
 The portal upload card is a client-side convenience layer only. Client-side file validation improves feedback for unsupported MIME types, zero-byte files and files over 5 MB, but the server-side Sharp validation and finalize pipeline remains the security boundary.
+
+## Clinic signed view contract
+
+Phase 7.3B adds clinic viewing for finalized photo records without making the final bucket public and without exposing object keys to the browser.
+
+Clinic users do not receive storage paths or bucket names. A server route authorizes the current authenticated user through a narrow `SECURITY DEFINER` RPC before creating a short-lived signed URL for one finalized WebP object in the private `care-photos` bucket. The signed URL TTL is 60 seconds and must not exceed five minutes.
+
+The view URL response can contain only:
+
+- photo record id
+- short-lived signed URL
+- expiry timestamp
+- verified WebP MIME type
+- width and height
+- upload timestamp
+
+The response must not contain final object keys, incoming object keys, bucket names, checksums, original filenames, portal session values, client phone/email data or authorization internals.
+
+Plan detail screens can list safe photo metadata such as request label, required/optional state, plan day, upload time, dimensions and MIME type. They must not prefetch signed URLs. A signed URL is generated only when a clinic user explicitly chooses to view a photo.
+
+The signed URL lives only in component memory. Closing the viewer clears it from state, and reopening the viewer requests a new server authorization. The interface may describe this as secure viewing, but it must not claim that screenshots or copying are technically impossible.
+
+`photo.view_authorized` audit events record only safe metadata such as source, MIME type, width and height. Audit metadata must never contain signed URLs, storage keys, buckets, original filenames, client contact data, portal session values or image bytes.
