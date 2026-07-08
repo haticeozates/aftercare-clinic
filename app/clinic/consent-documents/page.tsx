@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { createConsentDocumentAction } from "@/lib/consent/actions";
-import { consentDocumentKindLabel, consentVersionStatusLabel, listConsentDocuments } from "@/lib/consent/service";
+import { ConsentDocumentCreateForm } from "@/components/clinic/consent-document-create-form";
+import {
+  consentDocumentKindLabel,
+  consentVersionStatusLabel,
+  listConsentDocuments
+} from "@/lib/consent/service";
+import { consentDocumentStatusLabel } from "@/lib/consent/clinic-ui";
+import { formatDisplayDateTime } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +17,16 @@ export default async function ConsentDocumentsPage() {
     <section className="page-section stack">
       <div className="page-header">
         <p className="eyebrow">Onay ve Bilgilendirme</p>
-        <h1>Aydınlatma ve Onay Belgeleri</h1>
+        <h1>Onay ve bilgilendirme belgeleri</h1>
         <p>Belge versiyonlarını ve danışanlara atanacak temel kayıt altyapısını yönetin.</p>
         {canManage ? (
-          <Link href="/clinic/consent-documents/new" className="button">
-            Yeni Belge Ekle
+          <Link href="/clinic/consent-documents/new" className="button secondary">
+            Yeni belge sayfası
           </Link>
         ) : null}
       </div>
+
+      {canManage ? <ConsentDocumentCreateForm /> : null}
 
       <div className="panel">
         {documents.length === 0 ? (
@@ -35,15 +43,26 @@ export default async function ConsentDocumentsPage() {
                   <p>
                     {consentDocumentKindLabel(document.documentKind)} · {document.code} · {document.purposeKey}
                   </p>
-                  <span className="badge">{document.status === "active" ? "Aktif" : "Pasif"}</span>
+                  <span className="badge">{consentDocumentStatusLabel(document.status)}</span>
                   {document.latestVersionStatus ? (
                     <span className="badge">{consentVersionStatusLabel(document.latestVersionStatus)}</span>
                   ) : null}
-                  <span className="badge">{document.versionCount} versiyon</span>
+                  <span className="badge">{document.hasActiveDraft ? "Taslak var" : "Taslak yok"}</span>
+                  {document.latestPublishedVersionNumber ? (
+                    <span className="badge">Yayın v{document.latestPublishedVersionNumber}</span>
+                  ) : null}
+                  <span className="badge">{formatDisplayDateTime(document.updatedAt)}</span>
                 </div>
-                <Link className="button secondary" href={`/clinic/consent-documents/${document.id}`}>
-                  Detay
-                </Link>
+                <div className="stack">
+                  {canManage && document.hasActiveDraft ? (
+                    <Link className="button secondary" href={`/clinic/consent-documents/${document.id}`}>
+                      Taslağı düzenle
+                    </Link>
+                  ) : null}
+                  <Link className="button secondary" href={`/clinic/consent-documents/${document.id}`}>
+                    Detay
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

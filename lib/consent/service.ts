@@ -18,6 +18,9 @@ export interface ConsentDocumentListItem {
   status: "active" | "inactive" | "archived";
   versionCount: number;
   latestVersionStatus: "draft" | "published" | "retired" | null;
+  hasActiveDraft: boolean;
+  latestPublishedVersionNumber: number | null;
+  updatedAt: string;
 }
 
 export interface ConsentVersionItem {
@@ -26,8 +29,10 @@ export interface ConsentVersionItem {
   status: "draft" | "published" | "retired";
   titleSnapshot: string;
   summaryText: string | null;
+  bodyText: string | null;
   publishedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface ConsentDocumentDetail extends ConsentDocumentListItem {
@@ -41,6 +46,7 @@ type DocumentRow = {
   document_kind: "notice" | "consent";
   purpose_key: string;
   status: "active" | "inactive" | "archived";
+  updated_at: string;
 };
 
 type VersionRow = {
@@ -50,19 +56,50 @@ type VersionRow = {
   status: "draft" | "published" | "retired";
   title_snapshot: string;
   summary_text: string | null;
+  body_text: string | null;
   published_at: string | null;
   created_at: string;
+  updated_at: string;
 };
 
-function toVersion(row: VersionRow): ConsentVersionItem {
+function toVersion(row: VersionRow, includeBody = false): ConsentVersionItem {
   return {
     id: row.id,
     versionNumber: row.version_number,
     status: row.status,
     titleSnapshot: row.title_snapshot,
     summaryText: row.summary_text,
+    bodyText: includeBody ? row.body_text : null,
     publishedAt: row.published_at,
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapDocumentListItem(document: DocumentRow, documentVersions: VersionRow[]): ConsentDocumentListItem {
+  const publishedVersions = documentVersions.filter(
+    (version) => version.status === "published" || version.status === "retired"
+  );
+  const latestVersionUpdatedAt = documentVersions.reduce<string | null>((latest, version) => {
+    if (!latest || version.updated_at > latest) {
+      return version.updated_at;
+    }
+    return latest;
+  }, null);
+
+  return {
+    id: document.id,
+    code: document.code,
+    title: document.title,
+    documentKind: document.document_kind,
+    purposeKey: document.purpose_key,
+    status: document.status,
+    versionCount: documentVersions.length,
+    latestVersionStatus: documentVersions[0]?.status ?? null,
+    hasActiveDraft: documentVersions.some((version) => version.status === "draft"),
+    latestPublishedVersionNumber:
+      publishedVersions.length > 0 ? Math.max(...publishedVersions.map((version) => version.version_number)) : null,
+    updatedAt: latestVersionUpdatedAt && latestVersionUpdatedAt > document.updated_at ? latestVersionUpdatedAt : document.updated_at
   };
 }
 
@@ -89,13 +126,15 @@ export async function listConsentDocuments() {
   const [documents, versions] = await Promise.all([
     supabase
       .from("consent_documents")
-      .select("id,code,title,document_kind,purpose_key,status")
+      .select("id,code,title,document_kind,purpose_key,status,updated_at")
       .eq("organization_id", context.organization.id)
       .order("created_at", { ascending: false })
       .returns<DocumentRow[]>(),
     supabase
       .from("consent_document_versions")
-      .select("id,consent_document_id,version_number,status,title_snapshot,summary_text,published_at,created_at")
+      .select(
+        "id,consent_document_id,version_number,status,title_snapshot,summary_text,published_at,created_at,updated_at"
+      )
       .eq("organization_id", context.organization.id)
       .order("version_number", { ascending: false })
       .returns<VersionRow[]>()
@@ -108,16 +147,7 @@ export async function listConsentDocuments() {
   return {
     documents: documents.data.map((document) => {
       const documentVersions = versions.data.filter((version) => version.consent_document_id === document.id);
-      return {
-        id: document.id,
-        code: document.code,
-        title: document.title,
-        documentKind: document.document_kind,
-        purposeKey: document.purpose_key,
-        status: document.status,
-        versionCount: documentVersions.length,
-        latestVersionStatus: documentVersions[0]?.status ?? null
-      };
+      return mapDocumentListItem(document, documentVersions);
     }),
     canManage: hasPermission(context.membership, "consent.manage")
   };
@@ -128,7 +158,7 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("consent_documents")
-    .select("id,code,title,document_kind,purpose_key,status")
+    .select("id,code,title,document_kind,purpose_key,status,updated_at")
     .eq("organization_id", context.organization.id)
     .eq("id", id)
     .maybeSingle<DocumentRow>();
@@ -139,7 +169,9 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
 
   const { data: versions, error: versionsError } = await supabase
     .from("consent_document_versions")
-    .select("id,consent_document_id,version_number,status,title_snapshot,summary_text,published_at,created_at")
+    .select(
+      "id,consent_document_id,version_number,status,title_snapshot,summary_text,body_text,published_at,created_at,updated_at"
+    )
     .eq("organization_id", context.organization.id)
     .eq("consent_document_id", id)
     .order("version_number", { ascending: false })
@@ -151,15 +183,8 @@ export async function getConsentDocumentDetail(id: string): Promise<{ document: 
 
   return {
     document: {
-      id: data.id,
-      code: data.code,
-      title: data.title,
-      documentKind: data.document_kind,
-      purposeKey: data.purpose_key,
-      status: data.status,
-      versionCount: versions.length,
-      latestVersionStatus: versions[0]?.status ?? null,
-      versions: versions.map(toVersion)
+      ...mapDocumentListItem(data, versions),
+      versions: versions.map((version) => toVersion(version, true))
     },
     canManage: hasPermission(context.membership, "consent.manage")
   };
@@ -203,6 +228,7 @@ export async function publishConsentVersion(versionId: string) {
   await requireOrganizationPermission("consent.manage");
   await clinicConsentService.publishConsentVersion(versionId);
   revalidatePath("/clinic/consent-documents");
+  revalidatePath("/clinic/consent-documents", "layout");
 }
 
 export async function createDraftFromLatestVersion(documentId: string) {
