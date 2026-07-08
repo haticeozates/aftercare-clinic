@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getPublicEnv, parseServerEnv } from "@/lib/env";
+import { getPublicEnv, LOCAL_RATE_LIMIT_PEPPER_FALLBACK, parseServerEnv } from "@/lib/env";
 
 const baseEnv = {
   APP_ENV: "development",
@@ -9,6 +9,16 @@ const baseEnv = {
   SUPABASE_PROJECT_REF: "local-aftercare",
   AUDIT_LOG_PEPPER: "test-audit-pepper",
   PRODUCTION_SUPABASE_PROJECT_REF: "prod-aftercare"
+};
+
+const productionEnv = {
+  ...baseEnv,
+  APP_ENV: "production",
+  NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+  SUPABASE_PROJECT_REF: "prod-aftercare",
+  AUDIT_LOG_PEPPER: "production-audit-pepper-32-characters-min",
+  RATE_LIMIT_PEPPER: "production-rate-limit-pepper-32-chars-min",
+  RATE_LIMIT_CLEANUP_SECRET: "production-rate-limit-cleanup-secret"
 };
 
 describe("environment validation", () => {
@@ -59,5 +69,37 @@ describe("environment validation", () => {
 
     expect(JSON.stringify(publicEnv)).not.toContain("rate-limit");
     expect(JSON.stringify(publicEnv)).not.toContain("secret-rate-limit-pepper");
+  });
+
+  it("rejects production deployments without a dedicated rate-limit pepper", () => {
+    const env: Record<string, string | undefined> = { ...productionEnv };
+    delete env.RATE_LIMIT_PEPPER;
+
+    expect(() => parseServerEnv(env)).toThrow(/RATE_LIMIT_PEPPER/);
+  });
+
+  it("rejects production rate-limit peppers that reuse the audit pepper", () => {
+    expect(() =>
+      parseServerEnv({
+        ...productionEnv,
+        AUDIT_LOG_PEPPER: "shared-pepper-value-32-characters-min",
+        RATE_LIMIT_PEPPER: "shared-pepper-value-32-characters-min"
+      })
+    ).toThrow(/differ/i);
+  });
+
+  it("rejects local development pointed at the production Supabase project ref", () => {
+    expect(() =>
+      parseServerEnv({
+        ...baseEnv,
+        SUPABASE_PROJECT_REF: "prod-aftercare"
+      })
+    ).toThrow(/production Supabase project ref/i);
+  });
+
+  it("allows deterministic local rate-limit pepper fallback outside production", () => {
+    const env = parseServerEnv(baseEnv);
+    expect(env.RATE_LIMIT_PEPPER).toBeUndefined();
+    expect(LOCAL_RATE_LIMIT_PEPPER_FALLBACK).toContain("local-rate-limit");
   });
 });

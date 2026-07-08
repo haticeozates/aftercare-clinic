@@ -1,18 +1,8 @@
 import crypto from "node:crypto";
+import { resolveRateLimitPepper } from "@/lib/env";
 
 export function getRateLimitPepper(source: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env) {
-  const appEnv = source.APP_ENV ?? "development";
-  const configured = source.RATE_LIMIT_PEPPER;
-
-  if (configured && configured.trim().length > 0) {
-    return configured;
-  }
-
-  if (appEnv === "production") {
-    throw new Error("RATE_LIMIT_PEPPER is required in production");
-  }
-
-  return "local-rate-limit-pepper-deterministic-test-only";
+  return resolveRateLimitPepper(source);
 }
 
 export function deriveRateLimitClientFacet(material: string, pepper = getRateLimitPepper()) {

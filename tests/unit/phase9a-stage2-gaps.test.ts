@@ -19,7 +19,8 @@ const baseEnv = {
 
 const productionPeppers = {
   AUDIT_LOG_PEPPER: "production-audit-pepper-32-chars-min",
-  RATE_LIMIT_PEPPER: "production-rate-limit-pepper-32-chars-min"
+  RATE_LIMIT_PEPPER: "production-rate-limit-pepper-32-chars-min",
+  RATE_LIMIT_CLEANUP_SECRET: "production-rate-limit-cleanup-secret"
 };
 
 function productionEnv(overrides: Record<string, string | undefined> = {}) {
