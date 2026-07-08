@@ -80,6 +80,18 @@ describe("portal daily task helpers", () => {
           title: "Temsili takip günü",
           status: "available",
           availability: "available",
+          photo_requests: [
+            {
+              id: "photo-request-1",
+              label: "Temsili fotoğraf talebi",
+              required: true,
+              status: "active",
+              uploaded_at: "2026-07-08T09:00:00+00:00",
+              incoming_object_key: "incoming/secret",
+              final_object_key: "photos/secret.webp",
+              original_filename: "private.jpg"
+            }
+          ],
           tasks: [
             {
               id: "task-1",
@@ -97,7 +109,15 @@ describe("portal daily task helpers", () => {
     });
 
     expect(JSON.stringify(sanitized)).not.toMatch(/phone|email|Synthetic Alpha|secure_link|source_template/i);
+    expect(JSON.stringify(sanitized)).not.toMatch(/incoming\/|photos\/|private\.jpg/i);
     expect(sanitized.days[0]?.tasks[0]?.id).toBe("task-1");
+    expect(sanitized.days[0]?.photoRequests[0]).toEqual({
+      id: "photo-request-1",
+      label: "Temsili fotoğraf talebi",
+      required: true,
+      status: "active",
+      uploadedAt: "2026-07-08T09:00:00+00:00"
+    });
   });
 
   it("maps raw portal errors to generic Turkish UI messages", () => {

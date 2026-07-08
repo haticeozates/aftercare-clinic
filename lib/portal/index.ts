@@ -12,6 +12,14 @@ export interface PortalTask {
   completedAt: string | null;
 }
 
+export interface PortalPhotoRequest {
+  id: string;
+  label: string;
+  required: boolean;
+  status: "active" | "cancelled";
+  uploadedAt: string | null;
+}
+
 export interface PortalDay {
   id: string;
   dayNumber: number;
@@ -19,6 +27,7 @@ export interface PortalDay {
   title: string | null;
   status: "pending" | "available" | "completed" | "skipped" | "locked";
   availability: PortalDayAvailability;
+  photoRequests: PortalPhotoRequest[];
   tasks: PortalTask[];
 }
 
@@ -59,6 +68,7 @@ type RawPortalDay = {
   title?: unknown;
   status?: unknown;
   availability?: unknown;
+  photo_requests?: unknown;
   tasks?: unknown;
 };
 
@@ -153,6 +163,15 @@ export function sanitizePortalPlan(raw: RawPortalPlan & Record<string, unknown>)
             ? day.status
             : "pending",
         availability: day.availability === "readonly" || day.availability === "locked" ? day.availability : "available",
+        photoRequests: Array.isArray(day.photo_requests)
+          ? (day.photo_requests as Array<Record<string, unknown>>).map((request) => ({
+              id: String(request.id ?? ""),
+              label: String(request.label ?? ""),
+              required: request.required === true,
+              status: request.status === "cancelled" ? "cancelled" : "active",
+              uploadedAt: stringOrNull(request.uploaded_at)
+            }))
+          : [],
         tasks: tasks.map((task) => ({
           id: String(task.id ?? ""),
           title: String(task.title ?? ""),

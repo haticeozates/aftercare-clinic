@@ -174,6 +174,13 @@ values (
   now() + interval '15 minutes'
 );
 
+select ok(
+  public.get_portal_plan_for_session('phase7-session-active')::text like '%Temsili fotoğraf talebi%'
+  and public.get_portal_plan_for_session('phase7-session-active')::text like '%photo_requests%'
+  and public.get_portal_plan_for_session('phase7-session-active')::text !~* 'incoming/|photos/|final_object|incoming_object|token|filename|phone|email',
+  '12. Portal photo request DTO exposes safe request fields without storage paths or PII'
+);
+
 insert into public.photo_upload_intents (
   id,
   organization_id,
