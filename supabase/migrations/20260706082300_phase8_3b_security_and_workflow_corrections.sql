@@ -500,3 +500,26 @@ $$;
 
 revoke all on function public.assign_data_request(uuid, uuid) from public;
 grant execute on function public.assign_data_request(uuid, uuid) to authenticated;
+
+alter table public.organization_memberships drop constraint if exists organization_memberships_user_profile_fk;
+
+alter table public.organization_memberships
+add constraint organization_memberships_user_profile_fk
+foreign key (user_id) references public.user_profiles(id);
+
+create policy "membership readers can read organization member profiles"
+on public.user_profiles
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.organization_memberships om_actor
+    join public.organization_memberships om_subject
+      on om_subject.organization_id = om_actor.organization_id
+     and om_subject.user_id = user_profiles.id
+    where om_actor.user_id = auth.uid()
+      and om_actor.status = 'active'
+      and public.current_user_has_permission(om_actor.organization_id, 'membership.read')
+  )
+);

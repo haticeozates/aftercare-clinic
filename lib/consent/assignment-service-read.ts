@@ -95,6 +95,7 @@ function mapAssignmentRow(
 
 async function loadCancelledByDisplayNames(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  organizationId: string,
   userIds: string[]
 ) {
   if (userIds.length === 0) {
@@ -102,15 +103,18 @@ async function loadCancelledByDisplayNames(
   }
 
   const { data, error } = await supabase
-    .from("user_profiles")
-    .select("id,display_name")
-    .in("id", userIds);
+    .from("organization_memberships")
+    .select("user_id,user_profiles(display_name)")
+    .eq("organization_id", organizationId)
+    .in("user_id", userIds);
 
   if (error) {
     return new Map<string, string>();
   }
 
-  return new Map(data.map((row) => [row.id, row.display_name]));
+  return new Map(
+    data.map((row) => [row.user_id, relationOne(row.user_profiles)?.display_name ?? "Bilinmeyen personel"])
+  );
 }
 
 export async function listClientDocumentAssignments(clientId: string) {
@@ -140,7 +144,7 @@ export async function listClientDocumentAssignments(clientId: string) {
         .filter((userId): userId is string => Boolean(userId))
     )
   ];
-  const cancelledByNames = await loadCancelledByDisplayNames(supabase, cancelledByIds);
+  const cancelledByNames = await loadCancelledByDisplayNames(supabase, context.organization.id, cancelledByIds);
 
   return {
     assignments: data.map((row) => mapAssignmentRow(row, cancelledByNames)),

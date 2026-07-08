@@ -2,6 +2,13 @@ import { expect, test, type Page } from "@playwright/test";
 
 const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
 
+const ids = {
+  alphaClient: "00000000-0000-4000-8000-00000000c101"
+};
+
+async function openAlphaClientDetail(page: Page) {
+  await page.goto(`/clinic/clients/${ids.alphaClient}`);
+}
 async function login(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("E-posta").fill(email);
@@ -32,8 +39,7 @@ test.describe("Phase 8.3B - Clinic Consent Assignment", () => {
     await login(page, "alpha-owner@example.test");
     await createAndPublishNotice(page, code);
 
-    await page.goto("/clinic/clients");
-    await page.getByRole("link", { name: /Synthetic Alpha Client One/i }).first().click();
+    await openAlphaClientDetail(page);
     await expect(page.getByRole("heading", { name: "Belge atamaları" })).toBeVisible();
     await page.getByLabel("Belge versiyonu").selectOption({ label: `${code} · v1 · Temsili bilgilendirme v1` });
     await page.getByRole("button", { name: "Belge ata" }).click();
@@ -42,8 +48,7 @@ test.describe("Phase 8.3B - Clinic Consent Assignment", () => {
 
     await page.getByRole("button", { name: "Çıkış yap" }).click();
     await login(page, "alpha-staff@example.test");
-    await page.goto("/clinic/clients");
-    await page.getByRole("link", { name: /Synthetic Alpha Client One/i }).first().click();
+    await openAlphaClientDetail(page);
     await expect(page.getByRole("heading", { name: "Belge atamaları" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Belge ata" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "İptal et" })).toHaveCount(0);
@@ -53,8 +58,7 @@ test.describe("Phase 8.3B - Clinic Consent Assignment", () => {
     const code = `e2e-cancel-${Date.now()}`;
     await login(page, "alpha-admin@example.test");
     await createAndPublishNotice(page, code);
-    await page.goto("/clinic/clients");
-    await page.getByRole("link", { name: /Synthetic Alpha Client One/i }).first().click();
+    await openAlphaClientDetail(page);
     await page.getByLabel("Belge versiyonu").selectOption({ label: `${code} · v1 · Temsili bilgilendirme v1` });
     await page.getByRole("button", { name: "Belge ata" }).click();
     await expect(page.getByText("Belge ataması oluşturuldu.")).toBeVisible();
