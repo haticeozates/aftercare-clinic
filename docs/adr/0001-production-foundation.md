@@ -1,3 +1,12 @@
+---
+type: Decision
+title: ADR 0001 — Production Foundation
+description: Accepted foundation for Faz 0–1 — Next.js, Supabase Auth/Postgres/RLS, org model, and audit.
+tags: [adr, foundation, faz-0, faz-1]
+timestamp: 2026-07-08T21:31:00Z
+okf_version: "0.1"
+---
+
 # ADR 0001: Production Foundation
 
 ## Status

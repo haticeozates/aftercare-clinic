@@ -1,3 +1,12 @@
+---
+type: Decision
+title: ADR 0002 — Photo Storage Foundation
+description: Accepted staged photo upload architecture, private buckets, opaque keys, and finalize contract for Phase 7.
+tags: [adr, photos, faz-7]
+timestamp: 2026-07-08T21:31:00Z
+okf_version: "0.1"
+---
+
 # ADR 0002: Phase 7.1 Photo Storage Foundation
 
 ## Status

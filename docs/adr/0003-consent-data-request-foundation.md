@@ -1,3 +1,12 @@
+---
+type: Decision
+title: ADR 0003 — Consent and Data Request Foundation
+description: Accepted notice vs consent model, immutable document versions, append-only events, and legal boundaries for Phase 8.
+tags: [adr, consent, data-requests, faz-8]
+timestamp: 2026-07-08T21:31:00Z
+okf_version: "0.1"
+---
+
 # ADR 0003: Consent Documents and Data Request Foundation
 
 ## Status
@@ -100,3 +109,26 @@ Deferred to Phase 8.3B:
 
 - Client document assignment UI and workflows.
 - Clinic data request review and staff assignment handling.
+
+## Phase 8.3B addendum (clinic assignment and data request review)
+
+Delivered in migration `20260706082200_phase8_3b_clinic_assignment_and_data_request_review.sql`:
+
+- Clinic assignment create/cancel RPCs with `consent.manage` authorization and membership-scoped composite foreign keys.
+- Pending assignment semantic invariants enforced via `consent_documents` row lock and version join (no denormalized `consent_document_id` on assignments).
+- Defense-in-depth partial unique indexes on `(organization_id, client_id, document_version_id)` for exact duplicate pending rows.
+- Direct `INSERT`/`UPDATE` on `client_document_assignments` revoked from `authenticated`; mutations RPC-only.
+- `record_client_document_event` restricted to clinic-operational types (`presented`, `notice_acknowledged`); portal consent decisions remain portal-session RPC only.
+- Data request assignee changes emit separate `assigned` events with `assignee_user_id`; idempotent when assignee unchanged.
+- `consent_assignment.cancelled` audit action allowlisted.
+
+Archived document portal boundary (product decision):
+
+- New assignments cannot be created for archived documents.
+- Archived pending assignments are not visible or actionable in the portal.
+- Archived completed assignments are not shown in the portal in this phase.
+- Assignment/event history remains in the database and clinic UI.
+- Archive does not auto-cancel existing assignments.
+- No portal historical-documents surface in 8.3B.
+
+Legal boundary unchanged: technical recordkeeping only.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClientConsentAssignmentsSection } from "@/components/clinic/client-consent-assignments-section";
 import { archiveClientAction, updateClientAction } from "@/lib/clients/actions";
 import { getClientDetail } from "@/lib/clients/service";
 import { formatDisplayDateTime } from "@/lib/formatters";
@@ -76,6 +77,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </button>
         </form>
       ) : null}
+
+      <ClientConsentAssignmentsSection clientId={client.id} />
     </section>
   );
 }
