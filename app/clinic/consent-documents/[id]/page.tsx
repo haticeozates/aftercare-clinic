@@ -53,11 +53,15 @@ export default async function ConsentDocumentDetailPage({ params }: { params: Pr
                 <span className="badge">{formatDisplayDateTime(version.publishedAt ?? version.createdAt)}</span>
               </div>
               {canManage && version.status === "draft" ? (
-                <form action={publishConsentVersionAction}>
+                <form action={publishConsentVersionAction} className="stack">
                   <input type="hidden" name="versionId" value={version.id} />
-                  <button className="button" type="submit">
-                    Yayınla
-                  </button>
+                  <details className="dropdown">
+                    <summary className="button">Yayınla</summary>
+                    <div className="dropdown-menu panel stack" style={{ padding: "1rem", marginTop: "0.5rem" }}>
+                      <p>Bu işlemi onaylıyor musunuz?</p>
+                      <button type="submit" className="button primary">Evet, Yayınla</button>
+                    </div>
+                  </details>
                 </form>
               ) : null}
             </article>

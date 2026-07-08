@@ -4,13 +4,15 @@ test.describe("Phase 8.3A - Clinic Consent Management", () => {
   test("owner can create and publish consent document", async ({ page }) => {
     // 1. Owner login
     await page.goto("/login");
-    await page.fill('input[name="email"]', "owner@alpha.test");
-    await page.fill('input[name="password"]', "testpass123");
+    await page.fill('input[name="email"]', "alpha-owner@example.test");
+    const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
+    await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
+    await page.waitForURL("/clinic");
 
     // 2. Go to clinic consent documents page
     await page.goto("/clinic/consent-documents");
-    await expect(page.locator("h1")).toContainText("Belgeler");
+    await expect(page.locator("h1").first()).toContainText("Aydınlatma ve Onay Belgeleri");
 
     // 3. Should see create new document button
     await expect(page.locator("text=Yeni Belge Ekle")).toBeVisible();
@@ -25,8 +27,7 @@ test.describe("Phase 8.3A - Clinic Consent Management", () => {
     await page.fill('input[name="initialDraftTitle"]', "Draft Version 1");
     await page.fill('input[name="initialDraftSummary"]', "Test summary");
     await page.fill('textarea[name="initialDraftBody"]', "This is a body that has more than 20 characters length.");
-    
-    await page.click('button[type="submit"]');
+    await page.click('button:has-text("Taslak oluştur")');
 
     // 5. Should redirect to document details
     await expect(page).toHaveURL(/\/clinic\/consent-documents\/[0-9a-fA-F-]+/);
@@ -48,9 +49,10 @@ test.describe("Phase 8.3A - Clinic Consent Management", () => {
     // 9. Staff login test
     await page.goto("/api/auth/signout");
     await page.goto("/login");
-    await page.fill('input[name="email"]', "staff@alpha.test");
-    await page.fill('input[name="password"]', "testpass123");
+    await page.fill('input[name="email"]', "alpha-staff@example.test");
+    await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
+    await page.waitForURL("/clinic");
 
     await page.goto("/clinic/consent-documents");
     // Staff should NOT see the create button
