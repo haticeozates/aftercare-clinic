@@ -109,3 +109,36 @@ Plan detail screens can list safe photo metadata such as request label, required
 The signed URL lives only in component memory. Closing the viewer clears it from state, and reopening the viewer requests a new server authorization. The interface may describe this as secure viewing, but it must not claim that screenshots or copying are technically impossible.
 
 `photo.view_authorized` audit events record only safe metadata such as source, MIME type, width and height. Audit metadata must never contain signed URLs, storage keys, buckets, original filenames, client contact data, portal session values or image bytes.
+
+## Photo cleanup contract
+
+Phase 7.4 adds a conservative storage cleanup job for private photo buckets. The cleanup job is not a user-facing retention policy and must not delete finalized photos referenced by `photo_records`.
+
+The job handles only confirmed storage orphans:
+
+- old incoming objects tied to expired or stale upload intents
+- old final objects not referenced by any `photo_records.final_object_key`
+- stale upload intent state where the database can classify the object safely
+
+The default mode is `dry_run`. Execute mode must be explicit and is protected by a server-only cleanup secret. The local CLI wrapper also requires `PHOTO_CLEANUP_CONFIRM=DELETE_ORPHANS` before execute mode can run.
+
+Safety windows are intentionally conservative:
+
+- incoming orphan minimum age: 24 hours
+- final orphan minimum age: 24 hours
+- batch size: 100 objects
+
+Storage list results are never sufficient for deletion by themselves. Before each delete, the server asks Postgres to classify the object through a narrow `SECURITY DEFINER` RPC. The RPC re-checks intent state, processing lease, final record references and object age. If the result is uncertain, the object is skipped.
+
+The cleanup route is internal-only:
+
+- `POST /internal/jobs/photo-cleanup`
+- Node.js runtime
+- `Cache-Control: no-store`
+- no GET cleanup
+- bearer secret header only
+- no query-param secret
+
+Cleanup responses and audit logs contain only aggregate counts. They must not include object keys, bucket paths, signed URLs, tokens, portal session values, client contact data, original filenames, image bytes or raw Supabase errors.
+
+Parallel cleanup is guarded by a database job lock. A second job receives `already_running` and must not start deletion. Crash recovery uses a bounded lock expiry rather than a permanent lock.
