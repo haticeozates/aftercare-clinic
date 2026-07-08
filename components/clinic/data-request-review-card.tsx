@@ -41,7 +41,6 @@ export function DataRequestReviewCard({
       {canManage ? (
         <DataRequestAssigneePicker
           dataRequestId={request.id}
-          currentStatus={request.status}
           staffOptions={staffOptions}
           currentAssigneeUserId={request.assignedToUserId}
         />
@@ -60,7 +59,6 @@ export function DataRequestReviewCard({
               ))}
             </select>
           </label>
-          <input type="hidden" name="resolutionCode" value="manual_review_completed" />
           <button className="button secondary" type="submit">
             Durumu güncelle
           </button>

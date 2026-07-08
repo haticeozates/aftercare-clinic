@@ -25,6 +25,8 @@ export const dataRequestFinalStatuses = ["completed", "declined", "cancelled"] a
 export const dataRequestResolutionCodeSchema = z.enum([
   "completed_without_export",
   "manual_review_completed",
+  "manual_review_declined",
+  "manual_review_cancelled",
   "unsupported_request",
   "duplicate_request",
   "cancelled_by_client",
@@ -49,6 +51,19 @@ export function canTransitionDataRequestStatus(from: DataRequestStatus, to: Data
 
 export function nextDataRequestStatuses(status: DataRequestStatus): DataRequestStatus[] {
   return dataRequestAllowedTransitions[status];
+}
+
+export function resolveDataRequestResolutionCode(status: DataRequestStatus) {
+  if (status === "completed") {
+    return "manual_review_completed" as const;
+  }
+  if (status === "declined") {
+    return "manual_review_declined" as const;
+  }
+  if (status === "cancelled") {
+    return "manual_review_cancelled" as const;
+  }
+  return null;
 }
 
 const createInputSchema = z.object({

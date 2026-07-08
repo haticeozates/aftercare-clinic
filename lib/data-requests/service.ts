@@ -5,10 +5,10 @@ import { requireOrganizationPermission } from "@/lib/auth/server";
 import { hasPermission } from "@/lib/authorization";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
-  dataRequestFinalStatuses,
   mapDataRequestDatabaseError,
   nextDataRequestStatuses,
   parseDataRequestTransitionInput,
+  resolveDataRequestResolutionCode,
   type DataRequestStatus,
   type DataRequestType
 } from "@/lib/data-requests";
@@ -213,15 +213,16 @@ export async function listDataRequests() {
 export async function assignDataRequestFromForm(formData: FormData) {
   await requireOrganizationPermission("data_request.manage");
   const id = String(formData.get("dataRequestId") ?? "");
-  const currentStatus = String(formData.get("currentStatus") ?? "") as DataRequestStatus;
   const assignedToUserId = String(formData.get("assignedToUserId") || "") || null;
 
+  if (!assignedToUserId) {
+    throw new Error("Seçilen personel bu organizasyonda geçerli değil.");
+  }
+
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.rpc("transition_data_request_status", {
-    target_data_request_id: id,
-    target_status: currentStatus,
-    target_resolution_code: null,
-    target_assigned_to_user_id: assignedToUserId
+  const { data, error } = await supabase.rpc("assign_data_request", {
+    p_request_id: id,
+    p_assigned_to_user_id: assignedToUserId
   });
 
   if (error || (data as { error?: string } | null)?.error) {
@@ -235,7 +236,6 @@ export async function transitionDataRequestFromForm(formData: FormData) {
   await requireOrganizationPermission("data_request.manage");
   const parsed = parseDataRequestTransitionInput({
     status: String(formData.get("status") ?? ""),
-    resolutionCode: String(formData.get("resolutionCode") || "") || null,
     assignedToUserId: String(formData.get("assignedToUserId") || "") || null
   });
   const id = String(formData.get("dataRequestId") ?? "");
@@ -243,9 +243,7 @@ export async function transitionDataRequestFromForm(formData: FormData) {
   const { data, error } = await supabase.rpc("transition_data_request_status", {
     target_data_request_id: id,
     target_status: parsed.status,
-    target_resolution_code: dataRequestFinalStatuses.includes(parsed.status as (typeof dataRequestFinalStatuses)[number])
-      ? (parsed.resolutionCode ?? "manual_review_completed")
-      : null,
+    target_resolution_code: resolveDataRequestResolutionCode(parsed.status),
     target_assigned_to_user_id: parsed.assignedToUserId
   });
 

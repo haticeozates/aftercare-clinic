@@ -1,15 +1,12 @@
 import { assignDataRequestAction } from "@/lib/data-requests/actions";
-import type { DataRequestStatus } from "@/lib/data-requests";
 import type { StaffAssigneeOption } from "@/lib/data-requests/service";
 
 export function DataRequestAssigneePicker({
   dataRequestId,
-  currentStatus,
   staffOptions,
   currentAssigneeUserId
 }: {
   dataRequestId: string;
-  currentStatus: DataRequestStatus;
   staffOptions: StaffAssigneeOption[];
   currentAssigneeUserId: string | null;
 }) {
@@ -20,7 +17,6 @@ export function DataRequestAssigneePicker({
   return (
     <form action={assignDataRequestAction} className="toolbar stack">
       <input type="hidden" name="dataRequestId" value={dataRequestId} />
-      <input type="hidden" name="currentStatus" value={currentStatus} />
       <label>
         Sorumlu personel
         <select
