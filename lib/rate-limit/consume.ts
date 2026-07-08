@@ -4,6 +4,7 @@ import { createRateLimitAdapter } from "@/lib/rate-limit/factory";
 import { deriveRateLimitKey } from "@/lib/rate-limit/keys";
 import type { RateLimitConsumeResult, RateLimitScope } from "@/lib/rate-limit/types";
 import { getRateLimitPolicy } from "@/lib/rate-limit/config";
+import { createCorrelationId, logSafeServerEvent } from "@/lib/observability/safe-log";
 
 export async function consumeSecurityRateLimit(input: {
   scope: RateLimitScope;
@@ -26,6 +27,13 @@ export async function consumeSecurityRateLimit(input: {
       windowSeconds: policy.windowSeconds
     });
   } catch {
+    logSafeServerEvent({
+      operation: `rate_limit.${policy.scope}`,
+      result: "store_unavailable",
+      correlationId: createCorrelationId(),
+      errorCode: "rate_limit_store_unavailable"
+    });
+
     return {
       allowed: false,
       remaining: 0,
