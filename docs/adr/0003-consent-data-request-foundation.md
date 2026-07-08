@@ -132,3 +132,13 @@ Archived document portal boundary (product decision):
 - No portal historical-documents surface in 8.3B.
 
 Legal boundary unchanged: technical recordkeeping only.
+
+## Phase 8.3B correction addendum (security and workflow hardening)
+
+Migration `20260706082300_phase8_3b_security_and_workflow_corrections.sql` tightens boundaries without changing 8.3B product scope:
+
+- `transition_data_request_status` checks active membership before permission; foreign organization requests return generic `not found` and do not write denied audits in the target tenant.
+- `assign_data_request` provides a narrow assignee-only RPC with row locking; browser forms must not supply current status for assignee changes.
+- Terminal data request resolution codes are distinct and server-derived: `manual_review_completed`, `manual_review_declined`, `manual_review_cancelled`.
+- `record_client_document_event` accepts only `source = clinic`; portal consent decisions remain `record_portal_document_event` only.
+- Assignment cancellation history exposes safe actor display names to clinic readers; raw `cancelled_by_user_id` is not part of browser DTOs.

@@ -347,15 +347,20 @@ npm run verify:phase8
 
 ## Phase 8.3B — Completed
 
-Clinic assignment and data request review is complete.
+Clinic assignment and data request review is complete, including the controlled correction pass (`20260706082300_phase8_3b_security_and_workflow_corrections.sql`).
 
 Delivered:
 
 - Clinic client document assignment create/cancel/history on `app/clinic/clients/[id]/page.tsx` only (not care plan detail page).
 - Owner/admin manage; staff read-only for assignments.
+- Cancellation history shows timestamp and safe actor display name (no raw user IDs in browser DTOs).
 - Data request review UI with staff assignee picker and append-only event history.
-- Migration `20260706082200_phase8_3b_clinic_assignment_and_data_request_review.sql`.
-- pgTAP `phase8_3b_clinic_assignment_and_data_request_review.test.sql`.
+- Narrow `assign_data_request` RPC for assignee-only mutations without browser-supplied status.
+- Tenant-safe data request transitions: cross-tenant IDs return generic `not found` without foreign denied audits.
+- Server-side terminal resolution codes: `manual_review_completed`, `manual_review_declined`, `manual_review_cancelled`.
+- Clinic `record_client_document_event` accepts only `source = clinic` (portal/system spoof denied).
+- Migrations `20260706082200_phase8_3b_clinic_assignment_and_data_request_review.sql` and `20260706082300_phase8_3b_security_and_workflow_corrections.sql`.
+- pgTAP: `phase8_3b_clinic_assignment_and_data_request_review.test.sql`, `phase8_3b_security_and_workflow_corrections.test.sql`.
 - E2E: `phase8-clinic-consent-assignment.spec.ts`, `phase8-clinic-data-request-review.spec.ts`.
 
 Archived portal boundary:
@@ -375,7 +380,9 @@ npm run verify:phase8
 
 ## Next Phase
 
-Phase 8 remains open for 8.3C and later items outside 8.3B scope. Before starting new work:
+Phase 8 may continue with follow-up work outside the completed 8.3B boundary. **Faz 8.3C is referenced in planning notes but has no authoritative scope definition in this repository yet** — do not treat it as completed or in-progress without an explicit product decision.
+
+Before starting new work:
 
 - Verify latest commit with `git log --oneline -5`.
 - Run `npm run verify:phase8`.
