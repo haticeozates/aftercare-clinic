@@ -49,3 +49,25 @@ Phase 8.2 may add portal notice/consent presentation and session-scoped recordin
 Phase 8.3 may add richer clinic workflow screens for assignment management and data request review.
 
 This ADR intentionally does not add electronic signature, PDF certification, automatic export, automatic deletion, retention automation, notifications, appointments or a public landing page.
+
+## Phase 8.2 Portal Decisions
+
+Phase 8.2 adds session-scoped portal access for assigned published document versions. The portal receives only safe assignment DTO fields and cannot directly read or mutate consent/data-request tables.
+
+Notice acknowledgment remains separate from consent. A `notice_acknowledged` event records that the portal user acknowledged the specific notice version; it is not treated as accepted consent.
+
+Consent decisions are append-only events:
+
+- `consent_accepted`
+- `consent_declined`
+- `consent_withdrawn`
+
+Withdrawal does not delete the earlier accepted event, and it does not automatically delete client data, photos, backups or records. If a separate review workflow is needed, it must be modeled as a data request or a future clinic process.
+
+Portal data requests are review workflow records only. Submission creates a `submitted` request and a matching event; it does not run export, correction, deletion, restriction or objection actions automatically.
+
+The portal UI does not collect signature images, IP-based legal proof, browser fingerprints, location data or identity documents. Document body text is rendered as plain text. No `dangerouslySetInnerHTML` rendering is required or allowed for portal document content.
+
+Audit metadata for portal document and data-request events is allowlisted. It must not contain body text, summary text, free-form text, client identifiers, phone numbers, email addresses, portal tokens, session hashes or raw request payloads.
+
+Clinic review, assignment handling, completion workflows and richer document management screens are intentionally deferred to Phase 8.3.

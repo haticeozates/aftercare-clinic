@@ -1,256 +1,329 @@
 # AfterCare Clinic Phase Handoff
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
-This document is the practical continuation map for the production project. It records what has already been built, what is intentionally not included yet, and where the next machine/session should continue.
+This document is the practical continuation map for the production project. It records what has been built, what is intentionally excluded, and where the next phase should continue.
 
 ## Current Repository State
 
 - Repository: `https://github.com/haticeozates/aftercare-clinic.git`
 - Branch: `main`
-- Current checkpoint commit: `66dbf69 wip: save phase 6.5 premium ui work`
-- Previous completed checkpoint: `f9fc581 feat: add structured check-ins and clinical alerts`
-- Current phase status: Faz 6.5 UI/UX work is saved as a WIP checkpoint, but final heavy verification was blocked on the old Mac because disk space stayed below the requested threshold.
+- Current functional scope: Faz 0 through Faz 8.2
+- Latest exact commit should be verified with `git log --oneline -5` before starting new work.
+- `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and `.env.example`.
 
-## Important Boundaries
+## Hard Boundaries
 
 - Do not connect to remote/production Supabase.
 - Do not deploy.
-- Do not use real client, health, phone, photo, or clinic data.
+- Do not use real client, health, phone, email, legal, photo or clinic data.
 - Use only local Supabase/Postgres and synthetic `.test` users/data.
-- Do not add Faz 7 photo/storage work until Faz 6.5 is fully verified and accepted.
-- `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and project env examples.
+- Do not add appointment scheduling or public landing page work until explicitly requested.
+- Do not claim legal/KVKK compliance. The system stores technical records only.
 
 ## Phase Summary
 
 ### Faz 0-1: Production Foundation
 
 Built:
-- Next.js App Router + TypeScript production project foundation.
-- Environment validation.
-- Local Supabase setup structure.
-- Auth foundation.
-- Organization, membership, roles, permissions.
+
+- Next.js App Router + TypeScript project foundation.
+- Environment validation and local Supabase structure.
+- Organization, membership, roles and permissions.
 - Tenant isolation and RLS foundation.
 - Append-only audit foundation.
 - Synthetic seed and local/test safety rules.
 
-Key point:
-- The app is multi-tenant from the start. Organization context must come from active membership, not browser input.
+Key point: organization context must come from active membership or validated portal scope, not browser input.
 
-### Faz 1.5: Local Supabase and Real RLS Verification
+### Faz 1.5: Local Supabase and RLS Verification
 
-Built/verified:
+Built and verified:
+
 - Local Supabase CLI workflow.
-- Two clean DB reset flow.
+- Clean DB reset flow.
 - pgTAP/RLS tests against real local Postgres.
 - Tenant isolation tests for Alpha/Beta organizations.
 - Audit append-only and browser insert denial.
 - Inactive membership access denial.
 
-Key point:
-- RLS tests are not allowed to silently skip.
+Key point: RLS tests must not silently skip.
 
 ### Faz 2: Client and Procedure Management
 
 Built:
-- `clients`
-- `procedures`
+
+- Tenant-safe `clients` and `procedures`.
 - Client/procedure permissions.
-- Tenant-safe RLS and constraints.
 - Server-side services/actions.
-- Basic production UI for clients and procedures.
+- Clinic UI for clients and procedures.
 - Synthetic seed records.
 
-Security/product rules:
-- No TC kimlik, address, health history, medical notes, photos, or treatment data.
-- Phone is normalized and masked in UI.
-- Client hard delete is not exposed; archive flow is used.
+Rules:
+
+- No TC kimlik, address, health history, medical notes, photos or treatment data.
+- Phone is normalized and masked where shown.
+- Archive/inactive flows are used instead of hard delete.
 
 ### Faz 2.5: Local Auth Session and Browser E2E
 
-Built/verified:
+Built:
+
 - Real local Supabase email/password login.
 - Logout and session reload behavior.
 - Owner/admin/staff browser flows.
-- Role-based UI and server-side permission checks.
-- Playwright E2E for clients/procedures with real local auth sessions.
+- Role-based UI plus server-side permission checks.
 
-Key point:
-- UI hiding is not a security boundary. Server permission checks and RLS remain the real defenses.
+Key point: UI hiding is not a security boundary.
 
 ### Faz 3: Care Templates and Immutable Versioning
 
 Built:
-- `care_templates`
-- `care_template_versions`
-- `care_template_days`
-- `care_template_tasks`
-- `symptom_options`
-- `alert_rules`
-- Template permissions.
+
+- `care_templates`, `care_template_versions`, `care_template_days`, `care_template_tasks`
+- `symptom_options`, `alert_rules`
 - Draft/published version model.
-- Publish transaction.
-- Immutable published version behavior.
+- Transactional publish flow.
+- Immutable published content.
 - Template UI and E2E coverage.
 
-Product rules:
-- No real care/treatment instructions in seed or UI.
-- Published template content cannot be silently edited. Changes require a new draft/version.
+Rules:
+
+- Published template content cannot be silently edited.
+- Real care/treatment instructions are not used in seed or tests.
 
 ### Faz 4: Care Plan Snapshots and Secure Access Links
 
 Built:
+
 - Care plan snapshot model.
-- Plan days/tasks generated from published template version snapshots.
-- Secure link creation/rotation/revocation.
+- Plan days/tasks generated from published template snapshots.
+- Secure link creation, rotation and revocation.
 - Token hashing with pepper.
-- One-time plaintext token display behavior.
+- One-time plaintext token display.
 - Initial care access route.
-- Plan UI and secure-link tests.
 
-Follow-up audit:
-- Faz 4.1 acceptance gap audit was completed in `docs/qa/phase4-acceptance-gap-audit.md`.
+Follow-up:
 
-Product/security rules:
-- Plain token is only shown on create/rotate result.
+- Faz 4.1 acceptance gap audit is documented in `docs/qa/phase4-acceptance-gap-audit.md`.
+
+Rules:
+
+- Plain token is only shown after create/rotate.
 - Reload must not show plaintext token again.
-- URL must not contain client name, phone, procedure, health data, or predictable IDs.
+- Links must not expose client, phone, procedure, health data or predictable IDs.
 
 ### Faz 5: Client Care Portal and Daily Task Completion
 
 Built:
-- Token exchange to short-lived HttpOnly portal session.
-- `/care/session`
-- `/care/invalid`
+
+- Secure link exchange to a short-lived HttpOnly portal session.
+- `/care/session` and `/care/invalid`.
 - Portal plan/day/task read model.
 - Task complete and reopen behavior.
 - Append-only task event history.
 - Day status recalculation.
-- Portal privacy-safe DTOs.
+- Privacy-safe portal DTOs.
 
-Product/security rules:
-- Portal does not use Supabase Auth user account.
+Rules:
+
+- Portal does not use Supabase Auth user accounts.
 - Portal session scope is one care plan.
-- Portal response must not include phone, email, internal notes, IDs, token hashes, or session hashes.
-- No symptoms, photos, messaging, or consent in this phase.
+- Portal response excludes phone, email, internal notes, raw IDs, token hashes and session hashes.
 
 ### Faz 6: Structured Check-In and Clinical Alert Review
 
 Built:
-- Plan-specific symptom option/rule snapshots.
+
+- Plan-specific symptom option and rule snapshots.
 - Structured portal check-in submission.
 - Severity selection with safe 1-5 labels.
-- Rule-based alert generation for supported deterministic rules.
+- Deterministic rule-based alert generation.
 - Clinic alert list/detail.
-- Alert acknowledge/resolve/dismiss flow.
+- Alert acknowledge, resolve and dismiss flow.
 - Append-only alert event history.
 - Audit and privacy controls.
 
-Product rules:
+Rules:
+
 - The system does not diagnose.
-- The system does not say complication, dangerous, abnormal, urgent, or disease detected.
-- Alerts mean only: clinic review is needed.
-- No free-text health note, photo upload, AI, WhatsApp, messaging, appointment, consent, payment, or analytics.
+- Alerts mean only that clinic review is needed.
+- No AI, free-text health note, messaging, appointment, payment or analytics.
 
-### Faz 6.5: Premium UI/UX Design System and App Shell Redesign
+### Faz 6.5: Premium Clinical UI
 
-Saved in current WIP checkpoint:
-- Central visual tokens in global CSS.
+Built:
+
+- Central design tokens in global CSS.
 - Reusable UI primitives.
-- Premium clinic app shell with sidebar/mobile drawer.
-- Login refresh.
-- Dashboard refresh.
-- Responsive client list behavior.
-- Design-focused unit tests.
-- Design-focused Playwright E2E smoke tests.
+- Premium clinic app shell with desktop sidebar and mobile drawer.
+- Login and dashboard refresh.
+- Responsive list/detail/form polish.
+- Portal visual polish.
+- Design unit and Playwright smoke tests.
 
-Known verification state before handoff:
-- `npm run test:ui` passed: 3/3.
-- `npm run test:e2e:design` passed: 12/12.
-- `npm run test` passed: 86/86.
-- `npm run lint` passed.
-- `npm run typecheck` passed.
-- `npm run build` passed.
-- `git diff --check` was clean.
+Rules:
 
-Not yet completed:
-- Final heavy verification chain was not completed because the old Mac did not have enough free disk space.
-- The WIP commit message is intentionally `wip: save phase 6.5 premium ui work`, not the final accepted phase commit.
+- Auth, permissions, RLS, portal security and audit behavior remained server-side.
 
-## Next Session Continuation
+### Faz 7.1: Photo Storage Foundation
 
-On the new Windows machine:
+Built:
 
-1. Clone the repository.
-2. Install Node dependencies.
-3. Install/start Docker Desktop with WSL2 backend.
-4. Recreate `.env.local` for local/test only.
-5. Start local Supabase.
-6. Continue Faz 6.5 polish/refinement if still requested.
-7. Run full Faz 6.5 verification.
-8. If all checks pass, create the final phase commit:
+- `photo_requests`, `photo_upload_intents`, `photo_records`.
+- Private `care-photo-incoming` and `care-photos` buckets.
+- Tenant-safe schema, grants and negative RLS tests.
+- ADR for opaque path and private storage foundation.
 
-```text
-feat: introduce premium clinical design system
-```
+Rules:
 
-Do not move to Faz 7 until Faz 6.5 is verified and accepted.
+- No public buckets.
+- No original filenames, client IDs or meaningful IDs in object paths.
+- No photo events table; central audit is used.
 
-## Expected Full Verification For Faz 6.5
+### Faz 7.2: Secure Photo Upload Finalize
 
-Use actual package scripts from `package.json`; do not invent missing script names.
+Built:
 
-Minimum expected chain:
+- Portal upload intent and signed upload credential backend.
+- Atomic intent claim and processing lease behavior.
+- Server-side image byte/decode validation with Sharp.
+- Metadata stripping, orientation normalization and WebP output.
+- Idempotent finalization and compensation for DB/storage boundary failures.
+
+Rules:
+
+- Signed token is not persisted.
+- Incoming opaque path is stored server-side only as an object locator, not as a credential.
+- Final object key never returns to the browser.
+
+### Faz 7.3A: Portal Photo Upload UI
+
+Built:
+
+- Portal photo request card.
+- Mobile-first file picker and preview.
+- Client-side UX validation for JPEG/PNG/WebP and 5 MB limit.
+- Real signed upload plus finalize UI flow.
+- Safe retry and success states.
+
+Rules:
+
+- Path/token stay in component memory only.
+- No final photo viewing in portal.
+- No medical interpretation or image analysis.
+
+### Faz 7.3B: Clinic Secure Photo Viewer
+
+Built:
+
+- Staff-side secure photo view authorization RPC.
+- Short-lived signed view URL route.
+- Plan/client photo card and accessible viewer.
+- Audit for authorized view.
+- Cross-tenant and inactive-staff denial coverage.
+
+Rules:
+
+- Final bucket stays private.
+- Browser does not receive raw storage key or bucket path.
+- No download, edit or delete workflow.
+
+### Faz 7.4: Photo Cleanup Infrastructure
+
+Built:
+
+- Conservative orphan incoming/final cleanup classification.
+- Safety windows and batch limits.
+- Protected internal cleanup route.
+- Dry-run and execute modes.
+- Advisory/job lock behavior.
+- Aggregate cleanup audit with redacted metadata.
+
+Rules:
+
+- If orphan status is uncertain, do not delete.
+- Referenced finalized photos must not be deleted.
+- Production cron is not connected in this phase.
+
+### Faz 8.1: Consent Documents and Data Request Foundation
+
+Built:
+
+- Immutable consent/notice document model.
+- Draft/published/retired document versions.
+- Client document assignments.
+- Append-only client document events.
+- Data request workflow tables and append-only events.
+- Consent/data-request permissions and RLS.
+- Publish and data request transition foundations.
+- ADR 0003 for legal-content boundaries.
+
+Rules:
+
+- Notice acknowledgment is not consent.
+- Published document versions are immutable.
+- Withdrawal does not delete historical events or user data.
+- Data requests are workflow records only.
+
+### Faz 8.2: Portal Document Decisions and Data Request Submission
+
+Built:
+
+- Portal-scoped document assignment DTO.
+- Portal notice acknowledgment event.
+- Portal consent accept and decline events.
+- Portal consent withdrawal event.
+- Idempotent duplicate-event handling.
+- Portal data request submission.
+- Portal-owned data request list.
+- Safe modal/viewer UI for plain text document versions.
+- Real browser E2E for notice, consent, withdrawal and data request submission.
+
+Rules:
+
+- Portal sees only assigned published versions for its own client/plan scope.
+- Draft versions never enter portal DTOs.
+- Document body is rendered as plain text, not HTML.
+- Accept and decline are equally available; decline is not hidden or made harder.
+- Withdrawal creates a new append-only event and does not trigger deletion/export.
+- Data request submission does not automatically export or delete anything.
+
+## Current Verification Habit
+
+Before moving phases, run the relevant phase verifier and targeted tests:
 
 ```bash
-npm install
 npm run supabase:start
 npm run db:reset
 npm run db:reset
 npm run db:lint
 npm run test:db
 npm run test:rls:local
-npm run test:auth
-npm run test:plans
-npm run test:secure-links
-npm run test:portal
-npm run test:symptoms
-npm run test:alerts
-npm run test:e2e:phase2
-npm run test:e2e:phase3
-npm run test:e2e:phase4
-npm run test:e2e:phase5
-npm run test:e2e:phase6
-npm run test:ui
-npm run test:e2e:design
-npm run test
+npm run verify:phase8
+npm test
 npm run lint
 npm run typecheck
 npm run build
-npm run verify:phase6-ui
 npm audit
 ```
 
-Also verify:
+Also check:
+
 - `.env.local` is not tracked.
-- Service role keys and peppers are not in the browser bundle.
-- No new migrations or Faz 7 tables were added in Faz 6.5.
-- Auth, roles, tenant isolation, client masking, immutable templates, plan snapshots, secure links, portal sessions, task completion, check-ins, alerts, and audit privacy still work.
+- Service role keys, peppers, cleanup secrets, signed URLs and tokens are not in browser bundles.
+- Audit metadata does not contain body text, free text, PII, tokens, session hashes or storage keys.
+- Generated files, `.next`, test results and cache files are not committed.
 
-## Future Phase
+## Next Phase
 
-### Faz 7: Photo/Storage Security
-
-Not started.
+### Faz 8.3: Clinic Consent and Data Request Workflow
 
 Expected direction:
-- Private photo storage only.
-- No real photos in development.
-- Signed upload/download URLs.
-- MIME/size validation.
-- EXIF cleanup strategy.
-- Photo view audit.
-- Retention/delete rules.
-- No AI/image analysis.
-- No diagnosis or automated medical interpretation.
+
+- Clinic data request review, assignment and status management.
+- Clinic document management UI improvements.
+- Controlled staff/owner/admin workflows.
+- No automatic export/delete.
+- No legal-compliance claims.
+- No appointment module or public landing page unless explicitly requested later.
