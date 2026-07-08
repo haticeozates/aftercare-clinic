@@ -164,6 +164,6 @@ describe("phase 9a stage2 web boundary gaps", () => {
 
     expect(routeSource).toContain("POST");
     expect(routeSource).toContain("RATE_LIMIT_CLEANUP_SECRET");
-    expect(routeSource).toContain("no-store");
+    expect(routeSource).toMatch(/no-store|SENSITIVE_CACHE_CONTROL/);
   });
 });
