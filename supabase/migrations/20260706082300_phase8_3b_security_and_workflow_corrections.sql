@@ -118,11 +118,16 @@ begin
   end if;
 
   if not public.current_user_has_permission(request_row.organization_id, 'data_request.manage') then
-    perform public.write_data_request_manage_denied_audit(
+    insert into public.audit_logs (organization_id, actor_type, actor_user_id, action, entity_type, entity_id, result, safe_metadata)
+    values (
       request_row.organization_id,
+      'user',
+      auth.uid(),
       'data_request.assigned',
       'data_request',
-      request_row.id
+      request_row.id,
+      'denied',
+      public.sanitize_audit_metadata(jsonb_build_object('permission_key', 'data_request.manage', 'source', 'db_function'))
     );
     return jsonb_build_object('error', 'permission denied');
   end if;
@@ -221,11 +226,16 @@ begin
   end if;
 
   if not public.current_user_has_permission(request_row.organization_id, 'data_request.manage') then
-    perform public.write_data_request_manage_denied_audit(
+    insert into public.audit_logs (organization_id, actor_type, actor_user_id, action, entity_type, entity_id, result, safe_metadata)
+    values (
       request_row.organization_id,
+      'user',
+      auth.uid(),
       'data_request.status_changed',
       'data_request',
-      request_row.id
+      request_row.id,
+      'denied',
+      public.sanitize_audit_metadata(jsonb_build_object('permission_key', 'data_request.manage', 'source', 'db_function'))
     );
     return jsonb_build_object('error', 'permission denied');
   end if;

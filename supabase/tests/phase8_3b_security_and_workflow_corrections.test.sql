@@ -289,23 +289,38 @@ select is(
   '22. Clinic event stores server-side clinic source'
 );
 
+reset role;
+insert into public.data_requests (
+  id, organization_id, client_id, care_plan_id, request_type, status, submitted_source, submitted_at
+) values (
+  '00000000-0000-4000-8000-00000000c806',
+  '00000000-0000-4000-8000-0000000000a1',
+  '00000000-0000-4000-8000-00000000c101',
+  null,
+  'restriction',
+  'submitted',
+  'clinic',
+  now()
+);
+
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a103');
 select is(
   (public.transition_data_request_status(
-    '00000000-0000-4000-8000-00000000c805',
-    'cancelled',
+    '00000000-0000-4000-8000-00000000c806',
+    'under_review',
     null,
     null
   )->>'error'),
   'permission denied',
   '23. Staff without manage gets permission denied on own-org request'
 );
+reset role;
 select ok(
   exists (
     select 1
     from public.audit_logs
     where organization_id = '00000000-0000-4000-8000-0000000000a1'
-      and entity_id = '00000000-0000-4000-8000-00000000c805'
+      and entity_id = '00000000-0000-4000-8000-00000000c806'
       and result = 'denied'
       and action = 'data_request.status_changed'
   ),
