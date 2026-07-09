@@ -8,6 +8,15 @@ describe("phase 9a stage3 ci contract", () => {
     expect(scripts["verify:predeploy"]).toBe("node scripts/verify-predeploy.mjs");
   });
 
+  it("triggers on pull requests to main and phase branch pushes", () => {
+    const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    expect(ci).toMatch(/pull_request:\s*\n\s*branches:\s*\[main\]/);
+    expect(ci).toMatch(/push:\s*\n\s*branches:\s*\n\s*- main\s*\n\s*- "phase-\*\*"/);
+    expect(ci).toMatch(/workflow_dispatch:/);
+    expect(ci).not.toMatch(/paths:/);
+    expect(ci).not.toMatch(/paths-ignore:/);
+  });
+
   it("uses read-only permissions and required CI gates", () => {
     const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
     expect(ci).toMatch(/permissions:\s*\n\s*contents:\s*read/);

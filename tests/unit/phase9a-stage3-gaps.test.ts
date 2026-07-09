@@ -70,4 +70,11 @@ describe("phase 9a stage3 ci and release-gate gaps", () => {
     expect(ci).toMatch(/permissions:/);
     expect(ci).toMatch(/contents:\s*read/);
   });
+
+  it("runs CI on pull requests to main and pushes to phase branches", () => {
+    const ci = readCiWorkflow();
+    expect(ci).toMatch(/pull_request:\s*\n\s*branches:\s*\[main\]/);
+    expect(ci).toMatch(/- "phase-\*\*"/);
+    expect(ci).toMatch(/workflow_dispatch:/);
+  });
 });
