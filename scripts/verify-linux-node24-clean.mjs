@@ -12,7 +12,7 @@ const CLEAN_COMMAND = [
   "npm run test:clinic-consent",
   "npm run test:clinic-assignment",
   "npm run test:data-requests",
-  "npm run test:rate-limit",
+  "npx vitest run tests/unit/rate-limit-foundation.test.ts tests/unit/rate-limit.test.ts tests/unit/phase9a-rate-limit-gaps.test.ts tests/unit/phase9a-stage2-gaps.test.ts tests/unit/phase9a-stage2.test.ts",
   "npm run build"
 ].join(" && ");
 

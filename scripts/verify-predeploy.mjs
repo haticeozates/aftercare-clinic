@@ -30,7 +30,7 @@ function main() {
   run("repository hygiene", "node", ["scripts/verify-repository-hygiene.mjs"]);
   run("migration integrity", "node", ["scripts/verify-migration-integrity.mjs"]);
   run("next-env canonical", "node", ["scripts/verify-next-env-dts.mjs"]);
-  run("environment contract", "npx", ["vitest", "run", "tests/unit/env.test.ts"]);
+  run("environment contract", "npm", ["run", "test:env-contract"]);
 
   if (process.env.SKIP_NPM_CI !== "true") {
     run("lockfile install", "npm", ["ci"]);
