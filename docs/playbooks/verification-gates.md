@@ -104,7 +104,7 @@ Applied migrations through Faz 9A are listed in `supabase/migrations/frozen-mani
 |-----|---------|
 | `static` | Hygiene, migration integrity, canonical next-env, release-gate unit tests, lint, typecheck, Sharp smoke |
 | `database` | Supabase start, double reset, lint, pgTAP, local RLS, rate-limit tests |
-| `e2e` | Phase 7, 8, and 9 browser E2E with synthetic secrets |
+| `e2e` | Local Supabase env bootstrap, Phase 7/8/9 browser E2E with bundled Chromium |
 | `build` | Unit suite (`test:unit`), production build, audit, tracked worktree check |
 | `predeploy-summary` | Fails unless all required jobs pass |
 

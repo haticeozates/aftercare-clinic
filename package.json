@@ -48,6 +48,7 @@
     "supabase:start": "HOME=.supabase-home npx supabase start",
     "supabase:stop": "HOME=.supabase-home npx supabase stop",
     "supabase:status": "HOME=.supabase-home npx supabase status",
+    "supabase:write-env": "node scripts/write-local-env-from-supabase.mjs",
     "photo:cleanup:dry-run": "node scripts/photo-cleanup.mjs",
     "photo:cleanup:execute": "node scripts/photo-cleanup.mjs --execute",
     "db:reset": "HOME=.supabase-home npx supabase db reset",

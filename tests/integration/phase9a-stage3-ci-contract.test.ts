@@ -50,6 +50,19 @@ describe("phase 9a stage3 ci contract", () => {
     expect(databaseJob).toMatch(/test:rls:local/);
   });
 
+  it("bootstraps e2e with local supabase env and bundled chromium", () => {
+    const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const e2eJob = ci.match(/^\s{2}e2e:[\s\S]*?(?=^\s{2}build:)/m)?.[0] ?? "";
+    const playwrightConfig = readFileSync(join(process.cwd(), "playwright.config.ts"), "utf8");
+    const scripts = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")).scripts;
+
+    expect(e2eJob).toMatch(/supabase:start/);
+    expect(e2eJob).toMatch(/supabase:write-env/);
+    expect(e2eJob).toMatch(/playwright install --with-deps chromium/);
+    expect(scripts["supabase:write-env"]).toMatch(/write-local-env-from-supabase/);
+    expect(playwrightConfig).not.toMatch(/channel:\s*["']chrome["']/);
+  });
+
   it("uses read-only permissions and required CI gates", () => {
     const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
     expect(ci).toMatch(/permissions:\s*\n\s*contents:\s*read/);

@@ -73,6 +73,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run supabase:start
+      - run: npm run supabase:write-env
       - run: npm run db:reset
       - run: npm run test:e2e:phase7
       - run: npm run test:e2e:phase7-ui

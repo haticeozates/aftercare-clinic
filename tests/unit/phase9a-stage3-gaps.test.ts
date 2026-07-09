@@ -103,4 +103,15 @@ describe("phase 9a stage3 ci and release-gate gaps", () => {
     expect(databaseJob).toMatch(/test:rate-limit/);
     expect(databaseJob).toMatch(/test:rls:local/);
   });
+
+  it("requires e2e env bootstrap and bundled chromium", () => {
+    const ci = readCiWorkflow();
+    const e2eJob = ci.match(/^\s{2}e2e:[\s\S]*?(?=^\s{2}build:)/m)?.[0] ?? "";
+    const playwrightConfig = readFileSync(join(root, "playwright.config.ts"), "utf8");
+    const scripts = readPackageScripts();
+
+    expect(e2eJob).toMatch(/supabase:write-env/);
+    expect(scripts["supabase:write-env"]).toMatch(/write-local-env-from-supabase/);
+    expect(playwrightConfig).not.toMatch(/channel:\s*["']chrome["']/);
+  });
 });
