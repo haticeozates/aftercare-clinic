@@ -110,7 +110,7 @@ Applied migrations through Faz 9A are listed in `supabase/migrations/frozen-mani
 
 CI uses Ubuntu, Node 24, `npm ci`, and `permissions: contents: read`. No production secrets are required.
 
-# Phase 9A Stage 2 Tests
+# Targeted Domain Tests
 
 ```bash
 npm run test:clients
