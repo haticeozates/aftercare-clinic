@@ -5,14 +5,14 @@ import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 
-function runMigrationIntegrity(args) {
+function runMigrationIntegrity(args: string[] = []) {
   return execFileSync("node", ["scripts/verify-migration-integrity.mjs", ...args], {
     cwd: root,
     encoding: "utf8"
   });
 }
 
-function expectMigrationFailure(args) {
+function expectMigrationFailure(args: string[]) {
   expect(() => runMigrationIntegrity(args)).toThrow();
 }
 
