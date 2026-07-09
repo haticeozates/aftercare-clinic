@@ -69,6 +69,18 @@ npm run dev
 Clinic UI: `http://localhost:3000/login` → `/clinic`
 Portal: requires a secure link from a seeded or test-created care plan.
 
+# Faz 9A Release Gate
+
+```bash
+npm run verify:predeploy
+```
+
+Requires local Supabase. Optional Docker check:
+
+```bash
+npm run verify:linux-node24-clean
+```
+
 # Phase 9A Stage 2 Checks
 
 ```bash

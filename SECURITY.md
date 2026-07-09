@@ -43,6 +43,22 @@ but is not wired to production cron yet.
 - Baseline security headers are applied globally through middleware. HSTS is emitted only when `APP_ENV=production`. Strict CSP is deferred until nonce/hash App Router infrastructure exists.
 - Sensitive portal, signed-view, and internal job responses use `Cache-Control: no-store, private`.
 
+## Release Gates (Faz 9A Stage 3)
+
+- Applied migrations are frozen in `supabase/migrations/frozen-manifest.json`. Frozen files must not be edited, renamed, or deleted.
+- `npm run verify:predeploy` is the local fail-closed release gate. It uses synthetic secrets only and does not deploy or connect to remote Supabase.
+- GitHub Actions CI on Ubuntu + Node 24 enforces migration integrity, repository hygiene, pgTAP, local RLS, phase 7/8/9 E2E, build, and audit checks with read-only permissions.
+- Tracked secret artefacts (`.env.local`, `.next`, private keys, logs) are rejected by repository hygiene checks.
+
+## Production Go-Live Prerequisites (outside this repo)
+
+Faz 9A hardening foundation can be complete in code without approving a real production deployment. Before production go-live:
+
+1. Bind scheduler/cron to photo cleanup and rate-limit cleanup internal routes with separate secrets.
+2. Configure production environment values that satisfy `lib/env/index.ts`.
+3. Confirm GitHub-hosted CI passes on the release branch.
+4. Plan strict CSP separately once nonce/hash App Router infrastructure exists.
+
 ## Reporting
 
 During this early private phase, report suspected security issues directly to the

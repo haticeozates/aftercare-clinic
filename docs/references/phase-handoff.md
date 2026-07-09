@@ -17,7 +17,7 @@ This document is the practical continuation map for the production project. It r
 
 - Repository: `https://github.com/haticeozates/aftercare-clinic.git`
 - Branch: `main`
-- Current functional scope: Faz 0 through Faz 9A Stage 2 (in progress; not fully closed)
+- Current functional scope: Faz 0 through Faz 9A (production-hardening foundation complete)
 - Latest exact commit should be verified with `git log --oneline -5` before starting new work.
 - `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and `.env.example`.
 
@@ -407,31 +407,62 @@ Delivered in Stage 2:
 - Protected internal cleanup route `POST /internal/jobs/rate-limit-cleanup` with `RATE_LIMIT_CLEANUP_SECRET`, bounded batch deletes, and single-runner lock reuse.
 - Unit/integration/E2E coverage: `phase9a-stage2-gaps.test.ts`, `phase9a-stage2.test.ts`, `phase9a-stage2-boundaries.test.ts`, `phase9a-stage2-hardening.spec.ts`.
 
-Not in Stage 2:
+## Phase 9A Stage 3 — CI, Migration Integrity, Pre-Deploy Gate (complete)
 
-- Production cron/scheduler wiring for rate-limit cleanup (endpoint exists; operator must call it).
-- CSP enforcement (report-only or strict policy awaits Stage 3).
-- Rate limits on photo upload, consent decisions, or data-request portal mutations (deferred unless a later stage documents explicit abuse evidence and key facets).
-- Linux Node 24 clean-container verification, CI workflow changes, migration freeze gate, pre-deploy release gate (Stage 3).
+Stage 3 closes the production-hardening foundation with migration freeze enforcement, repository hygiene, expanded CI, and a single local pre-deploy gate.
+
+Delivered in Stage 3:
+
+- `supabase/migrations/frozen-manifest.json` with SHA-256 checksums for all applied migrations through Phase 9A.
+- `scripts/verify-migration-integrity.mjs` — rejects frozen mutation, deletion, rename, and unexpected mid-history files; allows new forward migrations.
+- `scripts/verify-repository-hygiene.mjs` — rejects tracked secrets, build artefacts, logs, and private key material.
+- `scripts/verify-next-env-dts.mjs` — canonical tracked `next-env.d.ts` validator.
+- `scripts/verify-tracked-worktree.mjs` — post-build/post-test dirty working tree detection.
+- `scripts/verify-predeploy.mjs` exposed as `npm run verify:predeploy` with synthetic local secrets only.
+- `scripts/verify-linux-node24-clean.mjs` exposed as `npm run verify:linux-node24-clean` for Docker-based clean installs.
+- GitHub Actions CI split into `static`, `database`, `e2e`, `build`, and `predeploy-summary` jobs on Ubuntu + Node 24 with `contents: read` permissions.
+- CI requires migration integrity, hygiene, pgTAP, local RLS, phase 7/8/9 E2E, production build, audit, and tracked worktree checks.
+- Regression coverage: `phase9a-stage3-gaps.test.ts`, `phase9a-stage3-release-gate.test.ts`, `phase9a-stage3-ci-contract.test.ts`.
+
+Explicitly not delivered in Faz 9A:
+
+- Production deploy or remote Supabase usage.
+- Production scheduler/cron wiring for photo or rate-limit cleanup (required before production go-live approval).
+- Strict CSP enforcement (deferred until nonce/hash App Router infrastructure exists).
+- `middleware.ts` → Next.js `proxy` migration (deferred; runtime security header behavior preserved and tested).
+- Faz 9B product scope.
 
 Verification:
 
 ```bash
-npm run test:rate-limit
-npm run test:e2e:phase9a-rate-limit
-npm run test:e2e:phase9a-stage2
-npm run test:secure-links
-npm run test:portal
-npm run verify:phase8
+npm run verify:migration-integrity
+npm run verify:repository-hygiene
+npm run test:unit -- tests/unit/phase9a-stage3-release-gate.test.ts
+npm run verify:predeploy
 ```
 
-## Next Phase
+Optional Linux clean install check:
 
-Phase 9A continues with Stage 3 CI/pre-deploy closure and final Faz 9A sign-off. **Faz 9B is not started.** Do not treat Faz 9A as fully closed until Stage 3 completes.
+```bash
+npm run verify:linux-node24-clean
+```
 
-Before starting new work:
+## Faz 9A Closure
+
+Faz 9A production-hardening foundation is complete at the code and local verification level.
+
+Production go-live still requires operator steps outside this repository:
+
+1. Bind production scheduler/cron to `POST /internal/jobs/photo-cleanup` and `POST /internal/jobs/rate-limit-cleanup` with separate secrets.
+2. Configure production environment values that pass `lib/env/index.ts` production guards.
+3. Run GitHub-hosted CI on the release branch and confirm all jobs pass.
+4. Plan strict CSP separately once nonce/hash infrastructure is available.
+
+**Faz 9B is not started.**
+
+Before starting Faz 9B or new product scope:
 
 - Verify latest commit with `git log --oneline -5`.
-- Run `npm run verify:phase8`.
+- Run `npm run verify:predeploy` locally when Supabase is available.
 - Do not add appointment scheduling, public landing page, or legal-compliance claims unless explicitly requested.
-- Do not connect to remote/production Supabase or deploy from this repository.
+- Do not connect to remote/production Supabase or deploy from this repository without an approved release process.
