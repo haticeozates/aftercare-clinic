@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
     "test:env-contract": "vitest run tests/unit/env.test.ts",
     "test:integration": "vitest run tests/integration",
     "test:clients": "vitest run tests/unit/clients.test.ts tests/integration/phase2-permissions.test.ts",
