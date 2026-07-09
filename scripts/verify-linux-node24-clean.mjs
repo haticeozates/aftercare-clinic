@@ -20,7 +20,20 @@ function main() {
   const mount = `${process.cwd()}:/workspace`;
   const result = spawnSync(
     "docker",
-    ["run", "--rm", "-v", mount, "-w", "/workspace", IMAGE, "bash", "-lc", CLEAN_COMMAND],
+    [
+      "run",
+      "--rm",
+      "-v",
+      mount,
+      "-v",
+      "/workspace/node_modules",
+      "-w",
+      "/workspace",
+      IMAGE,
+      "bash",
+      "-lc",
+      CLEAN_COMMAND
+    ],
     { stdio: "inherit" }
   );
 

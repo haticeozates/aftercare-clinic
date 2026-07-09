@@ -5,16 +5,19 @@ import { spawnSync } from "node:child_process";
 const SYNTHETIC_ENV = {
   PHOTO_CLEANUP_SECRET: "local-photo-cleanup-secret-32-chars",
   RATE_LIMIT_CLEANUP_SECRET: "local-rate-limit-cleanup-secret-32",
-  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD: "3",
-  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS: "60",
   PW_REUSE_EXISTING_SERVER: "false"
 };
 
-function run(label, command, args = []) {
+const E2E_ENV = {
+  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD: "3",
+  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS: "60"
+};
+
+function run(label, command, args = [], options = {}) {
   console.log(`[verify:predeploy] ${label}`);
   const result = spawnSync(command, args, {
     stdio: "inherit",
-    env: { ...process.env, ...SYNTHETIC_ENV },
+    env: { ...process.env, ...SYNTHETIC_ENV, ...options.env },
     shell: false
   });
 
@@ -27,7 +30,7 @@ function main() {
   run("repository hygiene", "node", ["scripts/verify-repository-hygiene.mjs"]);
   run("migration integrity", "node", ["scripts/verify-migration-integrity.mjs"]);
   run("next-env canonical", "node", ["scripts/verify-next-env-dts.mjs"]);
-  run("environment contract", "npm", ["run", "test:unit", "--", "tests/unit/env.test.ts"]);
+  run("environment contract", "npx", ["vitest", "run", "tests/unit/env.test.ts"]);
 
   if (process.env.SKIP_NPM_CI !== "true") {
     run("lockfile install", "npm", ["ci"]);
@@ -40,13 +43,13 @@ function main() {
   run("pgtap", "npm", ["run", "test:db"]);
   run("local rls", "npm", ["run", "test:rls:local"]);
   run("rate-limit and stage2 hardening", "npm", ["run", "test:rate-limit"]);
-  run("phase 7 e2e upload", "npm", ["run", "test:e2e:phase7"]);
-  run("phase 7 e2e portal ui", "npm", ["run", "test:e2e:phase7-ui"]);
-  run("phase 7 e2e clinic view", "npm", ["run", "test:e2e:phase7-view"]);
-  run("phase 7 e2e cleanup", "npm", ["run", "test:e2e:phase7-cleanup"]);
-  run("phase 8 e2e", "npm", ["run", "test:e2e:phase8"]);
-  run("phase 9a rate-limit e2e", "npm", ["run", "test:e2e:phase9a-rate-limit"]);
-  run("phase 9a stage2 e2e", "npm", ["run", "test:e2e:phase9a-stage2"]);
+  run("phase 7 e2e upload", "npm", ["run", "test:e2e:phase7"], { env: E2E_ENV });
+  run("phase 7 e2e portal ui", "npm", ["run", "test:e2e:phase7-ui"], { env: E2E_ENV });
+  run("phase 7 e2e clinic view", "npm", ["run", "test:e2e:phase7-view"], { env: E2E_ENV });
+  run("phase 7 e2e cleanup", "npm", ["run", "test:e2e:phase7-cleanup"], { env: E2E_ENV });
+  run("phase 8 e2e", "npm", ["run", "test:e2e:phase8"], { env: E2E_ENV });
+  run("phase 9a rate-limit e2e", "npm", ["run", "test:e2e:phase9a-rate-limit"], { env: E2E_ENV });
+  run("phase 9a stage2 e2e", "npm", ["run", "test:e2e:phase9a-stage2"], { env: E2E_ENV });
   run("unit suite", "npm", ["test"]);
   run("lint", "npm", ["run", "lint"]);
   run("typecheck", "npm", ["run", "typecheck"]);
