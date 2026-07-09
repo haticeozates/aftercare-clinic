@@ -51,7 +51,7 @@ function main() {
   run("phase 9a rate-limit e2e", "npm", ["run", "test:e2e:phase9a-rate-limit"], { env: E2E_ENV });
   run("phase 9a stage2 e2e", "npm", ["run", "test:e2e:phase9a-stage2"], { env: E2E_ENV });
   run("normalize next-env for production build", "node", ["scripts/verify-next-env-dts.mjs", "--fix"]);
-  run("unit suite", "npm", ["test"]);
+  run("unit suite", "npm", ["run", "test:unit"]);
   run("lint", "npm", ["run", "lint"]);
   run("typecheck", "npm", ["run", "typecheck"]);
   run("production build", "npm", ["run", "build"]);

@@ -95,7 +95,7 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
-      - run: npm test
+      - run: npm run test:unit
       - run: npm run build
       - run: npm audit --audit-level=high
       - run: node scripts/verify-tracked-worktree.mjs

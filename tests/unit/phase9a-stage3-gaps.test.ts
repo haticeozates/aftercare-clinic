@@ -92,4 +92,15 @@ describe("phase 9a stage3 ci and release-gate gaps", () => {
       /RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD=3/
     );
   });
+
+  it("runs database-dependent vitest suites only in the database job", () => {
+    const ci = readCiWorkflow();
+    const buildJob = ci.match(/^\s{2}build:[\s\S]*?(?=^\s{2}predeploy-summary:)/m)?.[0] ?? "";
+    const databaseJob = ci.match(/^\s{2}database:[\s\S]*?(?=^\s{2}e2e:)/m)?.[0] ?? "";
+
+    expect(buildJob).toMatch(/npm run test:unit/);
+    expect(buildJob).not.toMatch(/(^|\n)\s*- run: npm test\s*(\n|$)/);
+    expect(databaseJob).toMatch(/test:rate-limit/);
+    expect(databaseJob).toMatch(/test:rls:local/);
+  });
 });

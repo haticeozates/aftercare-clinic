@@ -37,6 +37,19 @@ describe("phase 9a stage3 ci contract", () => {
     );
   });
 
+  it("keeps the build job free of database-dependent vitest suites", () => {
+    const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const buildJob = ci.match(/^\s{2}build:[\s\S]*?(?=^\s{2}predeploy-summary:)/m)?.[0] ?? "";
+    const databaseJob = ci.match(/^\s{2}database:[\s\S]*?(?=^\s{2}e2e:)/m)?.[0] ?? "";
+
+    expect(buildJob).toMatch(/npm run test:unit/);
+    expect(buildJob).not.toMatch(/(^|\n)\s*- run: npm test\s*(\n|$)/);
+    expect(buildJob).not.toMatch(/supabase:start/);
+    expect(databaseJob).toMatch(/supabase:start/);
+    expect(databaseJob).toMatch(/test:rate-limit/);
+    expect(databaseJob).toMatch(/test:rls:local/);
+  });
+
   it("uses read-only permissions and required CI gates", () => {
     const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
     expect(ci).toMatch(/permissions:\s*\n\s*contents:\s*read/);
