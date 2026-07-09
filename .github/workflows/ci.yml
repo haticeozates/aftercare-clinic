@@ -5,38 +5,100 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PHOTO_CLEANUP_SECRET: local-photo-cleanup-secret-32-chars
+  RATE_LIMIT_CLEANUP_SECRET: local-rate-limit-cleanup-secret-32
+  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD: "3"
+  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS: "60"
+  PW_REUSE_EXISTING_SERVER: "false"
+
 jobs:
-  verify:
+  static:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: node -e "require('sharp'); console.log('sharp ok')"
+      - run: node scripts/verify-repository-hygiene.mjs
+      - run: node scripts/verify-migration-integrity.mjs
+      - run: node scripts/verify-next-env-dts.mjs
+      - run: npm run test:unit -- tests/unit/phase9a-stage3-gaps.test.ts tests/unit/env.test.ts
+      - run: npm run lint
+      - run: npm run typecheck
+
+  database:
+    runs-on: ubuntu-latest
+    needs: static
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run supabase:start
+      - run: npm run db:reset
+      - run: npm run db:reset
+      - run: npm run db:lint
+      - run: npm run test:db
+      - run: npm run test:rls:local
+      - run: npm run test:rate-limit
+      - name: Stop local Supabase
+        if: always()
+        run: npm run supabase:stop
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: database
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run supabase:start
       - run: npm run db:reset
-      - run: npm run db:lint
-      - run: npm run test:db
-      - run: npm run test:rls:local
-      - run: npm run test:auth
-      - run: npm run test:e2e:phase2
-      - run: npm run test:templates
-      - run: npm run test:e2e:phase3
-      - run: npm run test:plans
-      - run: npm run test:secure-links
-      - run: npm run test:e2e:phase4
-      - run: npm run test:portal
-      - run: npm run test:e2e:phase5
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-      - name: Secret scan placeholder
-        run: |
-          echo "Use GitHub secret scanning and add a dedicated scanner before production secrets exist."
+      - run: npm run test:e2e:phase7
+      - run: npm run test:e2e:phase7-ui
+      - run: npm run test:e2e:phase7-view
+      - run: npm run test:e2e:phase7-cleanup
+      - run: npm run test:e2e:phase8
+      - run: npm run test:e2e:phase9a-rate-limit
+      - run: npm run test:e2e:phase9a-stage2
       - name: Stop local Supabase
         if: always()
         run: npm run supabase:stop
+
+  build:
+    runs-on: ubuntu-latest
+    needs: static
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high
+      - run: node scripts/verify-tracked-worktree.mjs
+
+  predeploy-summary:
+    runs-on: ubuntu-latest
+    needs: [static, database, e2e, build]
+    steps:
+      - run: echo "All required CI gates passed."
