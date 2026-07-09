@@ -17,6 +17,26 @@ describe("phase 9a stage3 ci contract", () => {
     expect(ci).not.toMatch(/paths-ignore:/);
   });
 
+  it("keeps phase9a rate-limit e2e overrides out of workflow, static, and build scopes", () => {
+    const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+    const [workflowPreamble] = ci.split(/^jobs:/m);
+    const staticJob = ci.match(/^\s{2}static:[\s\S]*?(?=^\s{2}database:)/m)?.[0] ?? "";
+    const buildJob = ci.match(/^\s{2}build:[\s\S]*?(?=^\s{2}predeploy-summary:)/m)?.[0] ?? "";
+
+    for (const section of [workflowPreamble, staticJob, buildJob]) {
+      expect(section).not.toMatch(/RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD/);
+      expect(section).not.toMatch(/RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS/);
+    }
+
+    const scripts = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")).scripts;
+    expect(scripts["test:e2e:phase9a-rate-limit"]).toMatch(
+      /RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD=3/
+    );
+    expect(scripts["test:e2e:phase9a-rate-limit"]).toMatch(
+      /RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS=60/
+    );
+  });
+
   it("uses read-only permissions and required CI gates", () => {
     const ci = readFileSync(join(process.cwd(), ".github/workflows/ci.yml"), "utf8");
     expect(ci).toMatch(/permissions:\s*\n\s*contents:\s*read/);

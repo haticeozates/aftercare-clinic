@@ -1,9 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { deriveRateLimitKey, getRateLimitPepper } from "@/lib/rate-limit/keys";
 import { getRateLimitPolicy } from "@/lib/rate-limit/config";
 import { RATE_LIMIT_SCOPES } from "@/lib/rate-limit/types";
 
 describe("rate-limit foundation", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("derives opaque deterministic keys without embedding raw client material", () => {
     const key = deriveRateLimitKey({
       scope: RATE_LIMIT_SCOPES.SECURE_LINK_TOKEN_VALIDATION,
@@ -61,6 +65,11 @@ describe("rate-limit foundation", () => {
   });
 
   it("exposes default secure-link and portal policies", () => {
+    vi.stubEnv("RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD", undefined);
+    vi.stubEnv("RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS", undefined);
+    vi.stubEnv("RATE_LIMIT_PORTAL_TASK_MUTATION_THRESHOLD", undefined);
+    vi.stubEnv("RATE_LIMIT_PORTAL_TASK_MUTATION_WINDOW_SECONDS", undefined);
+
     expect(getRateLimitPolicy(RATE_LIMIT_SCOPES.SECURE_LINK_TOKEN_VALIDATION, "/care/t/[token]")).toMatchObject({
       threshold: 30,
       windowSeconds: 900

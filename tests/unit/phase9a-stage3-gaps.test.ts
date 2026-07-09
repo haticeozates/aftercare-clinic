@@ -77,4 +77,19 @@ describe("phase 9a stage3 ci and release-gate gaps", () => {
     expect(ci).toMatch(/- "phase-\*\*"/);
     expect(ci).toMatch(/workflow_dispatch:/);
   });
+
+  it("scopes phase9a rate-limit e2e overrides to package scripts only", () => {
+    const ci = readCiWorkflow();
+    const [workflowPreamble] = ci.split(/^jobs:/m);
+    expect(workflowPreamble).not.toMatch(/RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD/);
+    expect(workflowPreamble).not.toMatch(/RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS/);
+
+    const scripts = readPackageScripts();
+    expect(scripts["test:e2e:phase9a-rate-limit"]).toMatch(
+      /RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD=3/
+    );
+    expect(scripts["test:e2e:phase9a-stage2"]).toMatch(
+      /RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD=3/
+    );
+  });
 });

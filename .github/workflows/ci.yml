@@ -20,8 +20,6 @@ concurrency:
 env:
   PHOTO_CLEANUP_SECRET: local-photo-cleanup-secret-32-chars
   RATE_LIMIT_CLEANUP_SECRET: local-rate-limit-cleanup-secret-32
-  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD: "3"
-  RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS: "60"
   PW_REUSE_EXISTING_SERVER: "false"
 
 jobs:
