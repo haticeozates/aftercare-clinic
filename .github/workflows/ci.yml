@@ -33,7 +33,7 @@ jobs:
       - run: node scripts/verify-repository-hygiene.mjs
       - run: node scripts/verify-migration-integrity.mjs
       - run: node scripts/verify-next-env-dts.mjs
-      - run: npm run test:unit -- tests/unit/phase9a-stage3-gaps.test.ts tests/unit/env.test.ts
+      - run: npm run test:unit -- tests/unit/phase9a-stage3-gaps.test.ts tests/unit/phase9a-stage3-release-gate.test.ts tests/integration/phase9a-stage3-ci-contract.test.ts tests/unit/env.test.ts
       - run: npm run lint
       - run: npm run typecheck
 
