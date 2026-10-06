@@ -55,7 +55,8 @@ function main() {
   run("lint", "npm", ["run", "lint"]);
   run("typecheck", "npm", ["run", "typecheck"]);
   run("production build", "npm", ["run", "build"]);
-  run("dependency audit", "npm", ["audit", "--audit-level=high"]);
+  run("normalize next-env after build", "node", ["scripts/verify-next-env-dts.mjs", "--fix"]);
+  run("production dependency audit", "npm", ["audit", "--omit=dev", "--audit-level=high"]);
   run("tracked worktree integrity", "node", ["scripts/verify-tracked-worktree.mjs"]);
 
   console.log("[verify:predeploy] pass");

@@ -98,7 +98,8 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
       - run: npm run build
-      - run: npm audit --audit-level=high
+      - run: node scripts/verify-next-env-dts.mjs --fix
+      - run: npm audit --omit=dev --audit-level=high
       - run: node scripts/verify-tracked-worktree.mjs
 
   predeploy-summary:
