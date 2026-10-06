@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildCareTokenPath,
   createSecureToken,
+  defaultLinkExpiry,
   hashSecureToken,
   maskTokenPrefix,
   parsePortalSessionCookieOptions,
   secureTokenRouteHeaders,
-  checkTokenValidationRateLimit,
   tokenValidationFailureMessage
 } from "@/lib/secure-links";
 
@@ -58,10 +58,7 @@ describe("secure link token rules", () => {
     });
   });
 
-  it("exposes a local token validation rate-limit hook", () => {
-    expect(checkTokenValidationRateLimit({ route: "/care/t/[token]" })).toEqual({
-      allowed: true,
-      strategy: "local-hook"
-    });
+  it("derives link expiry three UTC days after plan end without changing fail-closed past-expiry rules", () => {
+    expect(defaultLinkExpiry("2026-10-07")).toBe("2026-10-10T23:59:59.000Z");
   });
 });

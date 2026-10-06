@@ -204,11 +204,4 @@ export function mapPortalError(error: unknown) {
   return "İşlem tamamlanamadı. Lütfen sayfayı yenileyin.";
 }
 
-export function checkPortalTaskMutationRateLimit(input: { route: string }) {
-  void input.route;
-
-  return {
-    allowed: true,
-    strategy: "local-hook" as const
-  };
-}
+export { checkPortalTaskMutationRateLimit } from "@/lib/rate-limit/security-routes";

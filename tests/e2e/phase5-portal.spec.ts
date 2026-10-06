@@ -3,15 +3,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
+import { formatIstanbulIsoDate } from "../../lib/formatters";
 
 const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
 const alphaOwner = "alpha-owner@example.test";
-
-function futureIstanbulDate(daysAhead = 7) {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + daysAhead);
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul" }).format(date);
-}
 
 function readLocalEnv() {
   const envPath = path.join(process.cwd(), ".env.local");
@@ -53,7 +48,7 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/clinic$/);
 }
 
-async function createPlan(page: Page, startDate = "2026-07-06") {
+async function createPlan(page: Page, startDate = formatIstanbulIsoDate()) {
   await page.goto("/clinic/plans/new");
   await page.getByLabel("Danışan").selectOption({ label: "Synthetic Alpha Client One" });
   await page.getByLabel("İşlem").selectOption({ label: "Alpha Procedure One" });
@@ -152,7 +147,7 @@ test("double click does not create duplicate completion events", async ({ page }
 
 test("scheduled plan shows disabled locked tasks", async ({ page }) => {
   await login(page);
-  await createPlan(page, futureIstanbulDate());
+  await createPlan(page, formatIstanbulIsoDate(7));
   const link = await createSecureLink(page);
   await page.goto(link);
   await expect(page.getByText("Planınız henüz başlamadı.")).toBeVisible();
@@ -248,7 +243,7 @@ test("locked and completed states are described with text", async ({ page }) => 
   await expect(page.getByText("Tamamlandı")).toBeVisible();
 
   await login(page);
-  await createPlan(page, futureIstanbulDate());
+  await createPlan(page, formatIstanbulIsoDate(7));
   const link = await createSecureLink(page);
   await page.goto(link);
   await expect(page.getByTestId("portal-task").getByRole("button", { name: "Kilitli" })).toBeVisible();

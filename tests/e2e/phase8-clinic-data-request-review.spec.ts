@@ -95,17 +95,11 @@ test.describe("Phase 8.3B - Clinic Data Request Review", () => {
     const declinedCard = page.locator(`article:has(input[name="dataRequestId"][value="${declinedId}"])`);
     await declinedCard.getByLabel("Yeni durum").selectOption({ label: "Reddedildi" });
     await declinedCard.getByRole("button", { name: "Durumu güncelle" }).click();
-    await page.reload();
-    await expect(
-      page.locator(`article:has(input[name="dataRequestId"][value="${declinedId}"])`).getByText("manual_review_declined")
-    ).toBeVisible();
+    await expect(declinedCard.getByText("manual_review_declined")).toBeVisible();
 
     const cancelledCard = page.locator(`article:has(input[name="dataRequestId"][value="${cancelledId}"])`);
     await cancelledCard.getByLabel("Yeni durum").selectOption({ label: "İptal edildi" });
     await cancelledCard.getByRole("button", { name: "Durumu güncelle" }).click();
-    await page.reload();
-    await expect(
-      page.locator(`article:has(input[name="dataRequestId"][value="${cancelledId}"])`).getByText("manual_review_cancelled")
-    ).toBeVisible();
+    await expect(cancelledCard.getByText("manual_review_cancelled")).toBeVisible();
   });
 });

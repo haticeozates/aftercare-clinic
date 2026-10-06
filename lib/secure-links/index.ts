@@ -42,14 +42,7 @@ export function secureTokenRouteHeaders() {
   };
 }
 
-export function checkTokenValidationRateLimit(input: { route: string }) {
-  void input.route;
-
-  return {
-    allowed: true,
-    strategy: "local-hook" as const
-  };
-}
+export { checkTokenValidationRateLimit } from "@/lib/rate-limit/security-routes";
 
 export function defaultLinkExpiry(endDate: string) {
   const date = new Date(`${endDate}T23:59:59.000Z`);

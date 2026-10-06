@@ -17,7 +17,7 @@ This document is the practical continuation map for the production project. It r
 
 - Repository: `https://github.com/haticeozates/aftercare-clinic.git`
 - Branch: `main`
-- Current functional scope: Faz 0 through Faz 8.3B
+- Current functional scope: Faz 0 through Faz 9A (production-hardening foundation complete)
 - Latest exact commit should be verified with `git log --oneline -5` before starting new work.
 - `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and `.env.example`.
 
@@ -378,13 +378,91 @@ npm run test:e2e:phase8
 npm run verify:phase8
 ```
 
-## Next Phase
+## Phase 9A Stage 1 — Durable Rate Limiting (complete)
 
-Phase 8 may continue with follow-up work outside the completed 8.3B boundary. **Faz 8.3C is referenced in planning notes but has no authoritative scope definition in this repository yet** — do not treat it as completed or in-progress without an explicit product decision.
+Stage 1 replaces process-local abuse hooks on security-critical portal routes with a durable PostgreSQL-backed shared limiter.
 
-Before starting new work:
+Delivered in Stage 1:
+
+- Migration `20260709090000_phase9a_durable_rate_limiting.sql` with atomic `consume_rate_limit` RPC and bounded `cleanup_expired_rate_limit_buckets` helper.
+- Opaque HMAC key derivation via dedicated `RATE_LIMIT_PEPPER` (separate from audit and portal token peppers).
+- Durable adapter for production/local Supabase; deterministic memory adapter for unit tests only.
+- Fail-closed behavior when the durable store is unavailable.
+- Migrated call sites: `/care/t/[token]` and `/care/session/tasks`.
+- pgTAP `phase9a_durable_rate_limiting.test.sql`, unit/integration coverage, E2E `phase9a-rate-limit.spec.ts`.
+
+## Phase 9A Stage 2 — Operational Hardening (complete)
+
+Stage 2 hardens environment validation, safe logging, web security boundaries, sensitive cache control, and internal rate-limit bucket cleanup.
+
+Delivered in Stage 2:
+
+- Central production env validation for `RATE_LIMIT_PEPPER` (required, min length, no placeholders, must differ from `AUDIT_LOG_PEPPER`) and `RATE_LIMIT_CLEANUP_SECRET`.
+- Supabase local/production project ref and URL guards in `lib/env/index.ts`.
+- Safe structured server logging (`lib/observability/safe-log.ts`) with allowlisted results and internal error codes.
+- Baseline security headers via `middleware.ts` (`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, frame embedding denial, cross-origin policies).
+- HSTS only when `APP_ENV=production`; not emitted for local/test/development.
+- CSP deferred to Stage 3/future hardening until nonce/hash App Router infrastructure exists.
+- `Cache-Control: no-store, private` on sensitive portal/rate-limit JSON responses and internal cleanup routes.
+- Protected internal cleanup route `POST /internal/jobs/rate-limit-cleanup` with `RATE_LIMIT_CLEANUP_SECRET`, bounded batch deletes, and single-runner lock reuse.
+- Unit/integration/E2E coverage: `phase9a-stage2-gaps.test.ts`, `phase9a-stage2.test.ts`, `phase9a-stage2-boundaries.test.ts`, `phase9a-stage2-hardening.spec.ts`.
+
+## Phase 9A Stage 3 — CI, Migration Integrity, Pre-Deploy Gate (complete)
+
+Stage 3 closes the production-hardening foundation with migration freeze enforcement, repository hygiene, expanded CI, and a single local pre-deploy gate.
+
+Delivered in Stage 3:
+
+- `supabase/migrations/frozen-manifest.json` with SHA-256 checksums for all applied migrations through Phase 9A.
+- `scripts/verify-migration-integrity.mjs` — rejects frozen mutation, deletion, rename, and unexpected mid-history files; allows new forward migrations.
+- `scripts/verify-repository-hygiene.mjs` — rejects tracked secrets, build artefacts, logs, and private key material.
+- `scripts/verify-next-env-dts.mjs` — canonical tracked `next-env.d.ts` validator.
+- `scripts/verify-tracked-worktree.mjs` — post-build/post-test dirty working tree detection.
+- `scripts/verify-predeploy.mjs` exposed as `npm run verify:predeploy` with synthetic local secrets only.
+- `scripts/verify-linux-node24-clean.mjs` exposed as `npm run verify:linux-node24-clean` for Docker-based clean installs.
+- GitHub Actions CI split into `static`, `database`, `e2e`, `build`, and `predeploy-summary` jobs on Ubuntu + Node 24 with `contents: read` permissions.
+- CI requires migration integrity, hygiene, pgTAP, local RLS, phase 7/8/9 E2E, production build, audit, and tracked worktree checks.
+- Regression coverage: `phase9a-stage3-gaps.test.ts`, `phase9a-stage3-release-gate.test.ts`, `phase9a-stage3-ci-contract.test.ts`.
+
+Explicitly not delivered in Faz 9A:
+
+- Production deploy or remote Supabase usage.
+- Production scheduler/cron wiring for photo or rate-limit cleanup (required before production go-live approval).
+- Strict CSP enforcement (deferred until nonce/hash App Router infrastructure exists).
+- `middleware.ts` → Next.js `proxy` migration (deferred; runtime security header behavior preserved and tested).
+- Faz 9B product scope.
+
+Verification:
+
+```bash
+npm run verify:migration-integrity
+npm run verify:repository-hygiene
+npm run test:unit -- tests/unit/phase9a-stage3-release-gate.test.ts
+npm run verify:predeploy
+```
+
+Optional Linux clean install check:
+
+```bash
+npm run verify:linux-node24-clean
+```
+
+## Faz 9A Closure
+
+Faz 9A production-hardening foundation is complete at the code and local verification level.
+
+Production go-live still requires operator steps outside this repository:
+
+1. Bind production scheduler/cron to `POST /internal/jobs/photo-cleanup` and `POST /internal/jobs/rate-limit-cleanup` with separate secrets.
+2. Configure production environment values that pass `lib/env/index.ts` production guards.
+3. Run GitHub-hosted CI on the release branch and confirm all jobs pass.
+4. Plan strict CSP separately once nonce/hash infrastructure is available.
+
+**Faz 9B is not started.**
+
+Before starting Faz 9B or new product scope:
 
 - Verify latest commit with `git log --oneline -5`.
-- Run `npm run verify:phase8`.
+- Run `npm run verify:predeploy` locally when Supabase is available.
 - Do not add appointment scheduling, public landing page, or legal-compliance claims unless explicitly requested.
-- Do not connect to remote/production Supabase or deploy from this repository.
+- Do not connect to remote/production Supabase or deploy from this repository without an approved release process.

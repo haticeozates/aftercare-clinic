@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useActionState } from "react";
 import { createPlanAction } from "@/lib/plans/actions";
+import { defaultPlanStartDate } from "@/lib/formatters";
 
 interface PlanOptionData {
   clients: { id: string; name: string }[];
@@ -49,7 +50,7 @@ export function PlanForm({ options }: { options: PlanOptionData }) {
       <input type="hidden" name="templateVersionId" value={filteredTemplates[0]?.versionId ?? ""} />
 
       <label htmlFor="startDate">Başlangıç tarihi</label>
-      <input id="startDate" name="startDate" type="date" required defaultValue="2026-07-06" />
+      <input id="startDate" name="startDate" type="date" required defaultValue={defaultPlanStartDate()} />
 
       <label htmlFor="controlDate">Kontrol tarihi</label>
       <input id="controlDate" name="controlDate" type="datetime-local" />

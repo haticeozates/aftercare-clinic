@@ -50,7 +50,9 @@ See [Foundation Modules](../modules/foundation-modules.md).
 
 # Service Role Usage
 
-`SUPABASE_SERVICE_ROLE_KEY` is server-only (`lib/supabase/admin.ts`). Use is narrow: migrations, seed, cleanup jobs, and explicit admin operations — never in client components or `NEXT_PUBLIC_*` env vars.
+`SUPABASE_SERVICE_ROLE_KEY` is server-only (`lib/supabase/admin.ts`). Use is narrow: migrations, seed, cleanup jobs, durable rate limiting, and explicit admin operations — never in client components or `NEXT_PUBLIC_*` env vars.
+
+Production deployments must not target local Supabase URLs or local project refs. Local/test environments must not reuse the configured production project ref. Internal cleanup routes (`PHOTO_CLEANUP_SECRET`, `RATE_LIMIT_CLEANUP_SECRET`) are POST-only, secret-protected, and return aggregate results without limiter keys.
 
 # Related
 

@@ -4,7 +4,7 @@ Production-oriented foundation for AfterCare Clinic. This project is intentional
 
 ## Current Scope
 
-Included through Faz 8.3B:
+Included through Faz 9A (production-hardening foundation):
 
 - Next.js App Router + TypeScript foundation
 - Local Supabase/Postgres development workflow
@@ -33,6 +33,10 @@ Included through Faz 8.3B:
 - Clinic consent document management (draft, publish, retire, archive)
 - Clinic client document assignment create/cancel with portal visibility boundaries
 - Clinic data request review with staff assignee assignment and event history
+- Durable shared PostgreSQL rate limiting for security-critical portal routes
+- Production environment guards, safe server logging, baseline security headers, and sensitive cache boundaries
+- Protected internal photo and rate-limit cleanup routes
+- Migration freeze manifest, repository hygiene gate, expanded Node 24 CI, and `verify:predeploy`
 - Synthetic local/test seed and deterministic test fixtures
 
 ## Explicitly Out Of Scope
@@ -45,7 +49,7 @@ Included through Faz 8.3B:
 - Public marketing/landing page
 - WhatsApp, SMS, email notification systems
 - Payment, analytics, AI or image analysis
-- Remote Supabase project access or production deployment
+- Remote Supabase project access or production deployment from this repository
 
 ## Local Setup
 
@@ -55,6 +59,12 @@ cp .env.example .env.local
 npm run supabase:start
 npm run db:reset
 npm run verify:phase8
+```
+
+Full Faz 9A release gate (requires local Supabase + Docker for optional Linux clean check):
+
+```bash
+npm run verify:predeploy
 ```
 
 Supabase CLI is installed as a dev dependency and should be run through npm scripts:
@@ -81,6 +91,8 @@ Server-only:
 - `SUPABASE_PROJECT_REF`
 - `PRODUCTION_SUPABASE_PROJECT_REF`
 - `AUDIT_LOG_PEPPER`
+- `RATE_LIMIT_PEPPER`
+- `RATE_LIMIT_CLEANUP_SECRET`
 - `PHOTO_CLEANUP_SECRET`
 
 Public:
@@ -88,7 +100,11 @@ Public:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Secrets must not be logged. `SUPABASE_SERVICE_ROLE_KEY`, `AUDIT_LOG_PEPPER` and cleanup secrets must never be prefixed with `NEXT_PUBLIC_` and must never be imported by client components.
+Secrets must not be logged. `SUPABASE_SERVICE_ROLE_KEY`, `AUDIT_LOG_PEPPER`, `RATE_LIMIT_PEPPER`, `RATE_LIMIT_CLEANUP_SECRET`, and `PHOTO_CLEANUP_SECRET` must never be prefixed with `NEXT_PUBLIC_` and must never be imported by client components.
+
+In production, `RATE_LIMIT_PEPPER` is required (minimum 32 characters, no placeholders, must differ from `AUDIT_LOG_PEPPER`). `RATE_LIMIT_CLEANUP_SECRET` is required separately from `PHOTO_CLEANUP_SECRET`. Production must not point at local Supabase URLs or local project refs.
+
+`npm run verify:predeploy` uses synthetic command-scoped secrets only and never prints secret values.
 
 ## Test Commands
 
@@ -103,6 +119,7 @@ npm run test:auth
 npm run test:photos
 npm run test:consent
 npm run test:data-requests
+npm run test:rate-limit
 npm run test:portal-consent
 npm run test:portal-data-requests
 npm run test:e2e:phase7
@@ -110,14 +127,25 @@ npm run test:e2e:phase7-ui
 npm run test:e2e:phase7-view
 npm run test:e2e:phase7-cleanup
 npm run test:e2e:phase8
+npm run test:e2e:phase9a-rate-limit
+npm run test:e2e:phase9a-stage2
+npm run verify:migration-integrity
+npm run verify:repository-hygiene
 npm run build
 npm run verify
 npm run verify:phase8
+npm run verify:predeploy
 ```
 
 ## Security Notes
 
-Secure link validation and portal mutations use local rate-limit hooks where durable distributed limiting is not yet part of the product. A shared durable limiter remains a future hardening task before real production data.
+Secure link validation and portal task mutations use a durable PostgreSQL-backed shared rate limiter for multi-instance safety. Process-local counters are not used on security-critical routes. Store failures fail closed with generic responses and safe structured server logs (no raw Postgres details, tokens, limiter keys, or storage paths).
+
+Baseline security headers are applied through `middleware.ts`. HSTS is emitted only when `APP_ENV=production`. Strict CSP remains deferred until nonce/hash infrastructure exists. Sensitive portal and internal job responses use `Cache-Control: no-store, private`.
+
+Internal cleanup endpoints exist for photo storage and expired rate-limit buckets. They use separate secrets and are not wired to production scheduler/cron in this repository. Binding schedulers is a required production go-live step before approving a real deployment.
+
+Applied SQL migrations are frozen in `supabase/migrations/frozen-manifest.json`. Do not edit, rename, or delete frozen migration files; add forward migrations only.
 
 Photo upload uses a private incoming bucket, server-side validation, WebP normalization, private final storage and short-lived signed view URLs. Raw tokens, signed URLs and storage keys must not be written to audit metadata or user-facing logs.
 
