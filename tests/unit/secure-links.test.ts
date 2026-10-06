@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCareTokenPath,
   createSecureToken,
+  defaultLinkExpiry,
   hashSecureToken,
   maskTokenPrefix,
   parsePortalSessionCookieOptions,
@@ -55,5 +56,9 @@ describe("secure link token rules", () => {
       "X-Robots-Tag": "noindex, nofollow",
       "Referrer-Policy": "no-referrer"
     });
+  });
+
+  it("derives link expiry three UTC days after plan end without changing fail-closed past-expiry rules", () => {
+    expect(defaultLinkExpiry("2026-10-07")).toBe("2026-10-10T23:59:59.000Z");
   });
 });

@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
+import { formatIstanbulIsoDate } from "../../lib/formatters";
 
 const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
 
@@ -44,7 +45,7 @@ async function createPlanAndOpenPortal(page: Page) {
   await page.getByLabel("Danışan").selectOption({ label: "Synthetic Alpha Client One" });
   await page.getByLabel("İşlem").selectOption({ label: "Alpha Procedure One" });
   await page.getByLabel("Şablon").selectOption({ label: "Alpha Template One v1" });
-  await page.getByLabel("Başlangıç tarihi").fill("2026-07-06");
+  await page.getByLabel("Başlangıç tarihi").fill(formatIstanbulIsoDate());
   await page.getByRole("button", { name: "Plan oluştur" }).click();
   await expect(page).toHaveURL(/\/clinic\/plans\/[0-9a-f-]+$/);
   await page.getByRole("button", { name: "Güvenli bağlantı oluştur" }).click();

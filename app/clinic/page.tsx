@@ -5,15 +5,12 @@ import { listClients } from "@/lib/clients/service";
 import { listPlans } from "@/lib/plans/service";
 import { ButtonLink, Card, EmptyState, PageHeader, StatCard, Badge, statusBadgeVariant } from "@/components/ui";
 import { planStatusLabel } from "@/lib/plans";
-import { formatDisplayDate } from "@/lib/formatters";
+import { formatDisplayDate, formatIstanbulIsoDate } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
 
-function todayIso() {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul" }).format(new Date());
-}
-
 export default async function ClinicFoundationPage() {
+  const today = formatIstanbulIsoDate();
   const context = await getCurrentOrganizationContext();
 
   if (context.status === "unauthenticated") {
@@ -29,7 +26,6 @@ export default async function ClinicFoundationPage() {
     listClients({ status: "active" }),
     listAlerts({ status: "open" })
   ]);
-  const today = todayIso();
   const activePlans = plans.filter((plan) => plan.status === "active");
   const todaysPlans = plans.filter((plan) => plan.startDate <= today && plan.endDate >= today && plan.status === "active");
   const upcomingControls = plans.filter((plan) => plan.controlDate && plan.status !== "stopped").slice(0, 4);
