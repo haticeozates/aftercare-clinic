@@ -6,7 +6,13 @@ import {
   SAFE_INTERNAL_ERROR_CODES,
   SAFE_LOG_RESULTS
 } from "@/lib/observability/safe-log";
-import { getBaselineSecurityHeaders, isProductionHttpsEnv, SENSITIVE_CACHE_CONTROL } from "@/lib/security/headers";
+import {
+  composeSecurityHeaders,
+  getBaselineSecurityHeaders,
+  isProductionHttpsEnv,
+  SENSITIVE_CACHE_CONTROL,
+  withPathSpecificSecurityHeaders
+} from "@/lib/security/headers";
 import {
   buildRateLimitedPortalJsonResponse,
   buildStoreUnavailablePortalJsonResponse
@@ -81,6 +87,24 @@ describe("phase 9a stage2 operational hardening", () => {
     expect(production["Strict-Transport-Security"]).toContain("max-age=");
     expect(isProductionHttpsEnv("development")).toBe(false);
     expect(isProductionHttpsEnv("production")).toBe(true);
+  });
+
+  it("keeps token-route Referrer-Policy no-referrer when middleware overlays baseline headers", () => {
+    const baseline = getBaselineSecurityHeaders("development");
+    const tokenRoute = withPathSpecificSecurityHeaders(baseline, "/care/t/abc");
+    const tokenRoot = withPathSpecificSecurityHeaders(baseline, "/care/t");
+    const clinicRoute = withPathSpecificSecurityHeaders(baseline, "/clinic/plans");
+    const sessionRoute = withPathSpecificSecurityHeaders(baseline, "/care/session");
+    const emptyOverlay = withPathSpecificSecurityHeaders({}, "/clinic/plans");
+
+    expect(baseline["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+    expect(tokenRoute["Referrer-Policy"]).toBe("no-referrer");
+    expect(tokenRoot["Referrer-Policy"]).toBe("no-referrer");
+    expect(clinicRoute["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+    expect(sessionRoute["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+    expect(emptyOverlay["Referrer-Policy"]).toBeUndefined();
+    expect(composeSecurityHeaders("development", "/care/t/token")["Referrer-Policy"]).toBe("no-referrer");
+    expect(composeSecurityHeaders("development", "/clinic")["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
   });
 
   it("marks sensitive portal rate-limit responses as no-store", () => {

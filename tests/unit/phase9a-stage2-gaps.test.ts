@@ -151,7 +151,8 @@ describe("phase 9a stage2 web boundary gaps", () => {
       nextConfigSource.includes("getBaselineSecurityHeaders");
     const hasMiddlewareHeaders =
       middlewareExists &&
-      readFileSync(join(process.cwd(), "middleware.ts"), "utf8").includes("getBaselineSecurityHeaders");
+      readFileSync(join(process.cwd(), "middleware.ts"), "utf8").includes("getBaselineSecurityHeaders") &&
+      readFileSync(join(process.cwd(), "middleware.ts"), "utf8").includes("withPathSpecificSecurityHeaders");
 
     expect(hasHeaderConfig || hasMiddlewareHeaders).toBe(true);
   });

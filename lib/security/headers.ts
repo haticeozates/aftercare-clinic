@@ -23,6 +23,21 @@ export function getBaselineSecurityHeaders(appEnv: AppEnv | string = "developmen
   return headers;
 }
 
+export function withPathSpecificSecurityHeaders(headers: Record<string, string>, pathname: string) {
+  if (pathname === "/care/t" || pathname.startsWith("/care/t/")) {
+    return {
+      ...headers,
+      "Referrer-Policy": "no-referrer"
+    };
+  }
+
+  return headers;
+}
+
+export function composeSecurityHeaders(appEnv: AppEnv | string, pathname: string) {
+  return withPathSpecificSecurityHeaders(getBaselineSecurityHeaders(appEnv), pathname);
+}
+
 export function mergeResponseHeaders(...headerSets: Array<Record<string, string>>) {
   return Object.assign({}, ...headerSets);
 }
