@@ -74,7 +74,7 @@ describe("phase 9a stage3 ci contract", () => {
     expect(ci).toMatch(/test:e2e:phase7/);
     expect(ci).toMatch(/test:e2e:phase8/);
     expect(ci).toMatch(/test:e2e:phase9a/);
-    expect(ci).toMatch(/npm audit/);
+    expect(ci).toMatch(/npm audit --omit=dev --audit-level=high/);
     expect(ci).toMatch(/verify-tracked-worktree/);
     expect(ci).toMatch(/needs:\s*\[static, database, e2e, build\]/);
   });

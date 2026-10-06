@@ -56,7 +56,7 @@ describe("phase 9a stage3 ci and release-gate gaps", () => {
 
   it("runs npm audit and post-build tracked file integrity in CI", () => {
     const ci = readCiWorkflow();
-    expect(ci).toMatch(/npm audit/);
+    expect(ci).toMatch(/npm audit --omit=dev --audit-level=high/);
     expect(ci).toMatch(/verify-tracked-worktree/);
   });
 

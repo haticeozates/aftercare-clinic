@@ -24,12 +24,18 @@ function main() {
     return;
   }
 
-  const devVariant = canonical.replace(
-    'import "./.next/types/routes.d.ts";',
-    'import "./.next/dev/types/routes.d.ts";'
-  );
+  const allowedDevVariants = [
+    canonical.replace(
+      'import "./.next/types/routes.d.ts";',
+      'import "./.next/dev/types/routes.d.ts";'
+    ),
+    canonical.replace(
+      'import "./.next/types/routes.d.ts";',
+      'import "./.next/dev/types/routes.d.ts";\nimport "./.next/dev/types/root-params.d.ts";'
+    )
+  ];
 
-  if (current === devVariant && !shouldFix) {
+  if (allowedDevVariants.includes(current) && !shouldFix) {
     console.log("next-env.d.ts pass (dev import variant detected; normalize before production build)");
     return;
   }

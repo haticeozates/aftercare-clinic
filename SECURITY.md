@@ -59,6 +59,24 @@ Faz 9A hardening foundation can be complete in code without approving a real pro
 3. Confirm GitHub-hosted CI passes on the release branch.
 4. Plan strict CSP separately once nonce/hash App Router infrastructure exists.
 
+## Dependency Audit
+
+Production dependencies must pass:
+
+```
+npm audit --omit=dev --audit-level=high
+```
+
+The current production dependency tree reports 0 vulnerabilities under that gate.
+
+A known high-severity advisory remains transitively in the development-only ESLint toolchain:
+
+`eslint-config-next` → `@next/eslint-plugin-next` → `fast-glob` → `micromatch` → `braces`
+
+Do not use `npm audit fix --force`. It proposes a breaking downgrade and is not an acceptable remediation.
+
+This development-toolchain advisory must be re-evaluated when a compatible upstream fix is available. This policy does not claim that the entire dependency tree, including development dependencies, has 0 vulnerabilities.
+
 ## Reporting
 
 During this early private phase, report suspected security issues directly to the

@@ -123,5 +123,26 @@ describe("phase 9a stage3 release gates", () => {
     const middleware = readFileSync(join(root, "middleware.ts"), "utf8");
     expect(middleware).toContain("getBaselineSecurityHeaders");
     expect(middleware).toContain("_next/static");
+    expect(middleware.indexOf("withPathSpecificSecurityHeaders")).toBeGreaterThan(
+      middleware.indexOf("getBaselineSecurityHeaders")
+    );
+    expect(middleware).toContain("withPathSpecificSecurityHeaders({}, request.nextUrl.pathname)");
+  });
+
+  it("documents production-only high audit policy without claiming a clean full tree", () => {
+    const security = readFileSync(join(root, "SECURITY.md"), "utf8");
+    expect(security).toMatch(/npm audit --omit=dev --audit-level=high/);
+    expect(security).toMatch(/eslint-config-next/);
+    expect(security).toMatch(/micromatch/);
+    expect(security).toMatch(/braces/);
+    expect(security).toMatch(/npm audit fix --force/);
+    expect(security).toMatch(/development-only ESLint toolchain/);
+  });
+
+  it("disables Next.js agentRules instead of gitignoring AGENTS.md", () => {
+    const gitignore = readFileSync(join(root, ".gitignore"), "utf8").split(/\r?\n/);
+    const nextConfig = readFileSync(join(root, "next.config.ts"), "utf8");
+    expect(nextConfig).toMatch(/agentRules:\s*false/);
+    expect(gitignore).not.toContain("AGENTS.md");
   });
 });
