@@ -5,7 +5,7 @@ import {
   consentVersionStatusLabel,
   listConsentDocuments
 } from "@/lib/consent/service";
-import { consentDocumentStatusLabel } from "@/lib/consent/clinic-ui";
+import { consentDocumentStatusLabel, consentPurposeKeyLabel } from "@/lib/consent/clinic-ui";
 import { formatDisplayDateTime } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +41,7 @@ export default async function ConsentDocumentsPage() {
                 <div>
                   <h2>{document.title}</h2>
                   <p>
-                    {consentDocumentKindLabel(document.documentKind)} · {document.code} · {document.purposeKey}
+                    {consentDocumentKindLabel(document.documentKind)} · {document.code} · {consentPurposeKeyLabel(document.purposeKey)}
                   </p>
                   <span className="badge">{consentDocumentStatusLabel(document.status)}</span>
                   {document.latestVersionStatus ? (

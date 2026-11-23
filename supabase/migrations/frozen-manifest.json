@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "frozenAt": "2026-07-09T00:00:00Z",
+  "migrations": [
+    {
+      "filename": "20260706000000_foundation.sql",
+      "sha256": "72eb5de6fc2c1378d9e0c19110711aafd557fe6c4b6df4687b521322f1700a48"
+    },
+    {
+      "filename": "20260706010000_clients_procedures.sql",
+      "sha256": "c52fa60f9dcf1b6f1006959b9f20240bca379f4924b5cbfac3dd165418491dfb"
+    },
+    {
+      "filename": "20260706020000_care_templates.sql",
+      "sha256": "3f96ae81ec4c6fbea01e9efdde3fed92bb1740120a3510a3c31f70778f5d4fed"
+    },
+    {
+      "filename": "20260706030000_care_plans_secure_links.sql",
+      "sha256": "75e2f89a525e3638750c6fb6c304538a583dea3fc41431057b60d13bcca7d6bf"
+    },
+    {
+      "filename": "20260706040000_portal_daily_tasks.sql",
+      "sha256": "f8ef28d07eb7e7198de19e96e84cf80c0fb769791bfea013f0775c6d37ef904c"
+    },
+    {
+      "filename": "20260706050000_structured_checkins_alerts.sql",
+      "sha256": "26774746a12b80c16f213aa15057bca32afe2127bde91f6a6d0162d524176dde"
+    },
+    {
+      "filename": "20260706060000_photo_storage_foundation.sql",
+      "sha256": "8c5db5949d0adb528ad4291e512e2a24d0425dfbb4e09a619cb7531622773f0f"
+    },
+    {
+      "filename": "20260706070000_photo_upload_finalize.sql",
+      "sha256": "0f270e748b1830e4a4aaf8b0ed55714c4114ab602d64559c374168f3e91ba75c"
+    },
+    {
+      "filename": "20260706071000_photo_upload_intent_rpc.sql",
+      "sha256": "ec5f95a4e7938c98f6c0ec7d7bc9c3db26813e15767709fd3c09bef19f81c503"
+    },
+    {
+      "filename": "20260706072000_portal_photo_request_dto.sql",
+      "sha256": "850e8be32a768b61f8abd2b588af4dad701e0e298323aa491dbed93cffb2669a"
+    },
+    {
+      "filename": "20260706073000_clinic_photo_view_authorization.sql",
+      "sha256": "eb8bff22aa7adc88053be779752f939f5d84ca85758feb6fea263d0ffcdd9635"
+    },
+    {
+      "filename": "20260706074000_photo_cleanup_foundation.sql",
+      "sha256": "ad8242c2bc37770a7178c65c12cdbabd9a9c9a7402fbf764acf941ebc55afc74"
+    },
+    {
+      "filename": "20260706080000_consent_data_request_foundation.sql",
+      "sha256": "141ddff1c9bbfb4964b1eb2afdac9493d6fb410559e81c139d38635b9c56a0ae"
+    },
+    {
+      "filename": "20260706081000_portal_consent_data_requests.sql",
+      "sha256": "6a9d90f27cc3ea43eaa890903a229e6333ba5840a49652496a457427cdf75647"
+    },
+    {
+      "filename": "20260706082000_clinic_consent_management.sql",
+      "sha256": "45af8bdf92de2637414aecffd1e50bf86f123b84e0bc62247c9b8ebe03bdcb39"
+    },
+    {
+      "filename": "20260706082100_clinic_consent_management_corrections.sql",
+      "sha256": "c4452f0cf6db977e06c38909873ee89755a5e059c9c7ef967ad8d1dc821e860b"
+    },
+    {
+      "filename": "20260706082200_phase8_3b_clinic_assignment_and_data_request_review.sql",
+      "sha256": "3565fa5b991794666d94f48acc2c16b999dbd3a768333dca060be05b7f847dd7"
+    },
+    {
+      "filename": "20260706082300_phase8_3b_security_and_workflow_corrections.sql",
+      "sha256": "0c3a8c549d6d207961eb48412734e5362bac891d102852ee748f37c3ae4d10c8"
+    },
+    {
+      "filename": "20260709090000_phase9a_durable_rate_limiting.sql",
+      "sha256": "54b8d0cfc7b7cc9c7eecce0da209d24d7144d82e62633d8f724420d63a66116b"
+    },
+    {
+      "filename": "20260709090100_phase9a_rate_limit_force_rls.sql",
+      "sha256": "d86086880bdd581780965b1345148fc03733801ffa76b88e7be9a4831c739d94"
+    }
+  ]
+}

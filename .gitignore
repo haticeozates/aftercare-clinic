@@ -13,3 +13,14 @@ test-results
 supabase/.branches
 supabase/.temp
 .supabase-home
+
+# Local reports, secrets, database exports and backups
+AFTERCARE_*_REPORT.md
+AFTERCARE_PROJECT_AUDIT.md
+*.bundle
+*.dump
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx

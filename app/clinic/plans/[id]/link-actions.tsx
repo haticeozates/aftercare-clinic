@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { createLinkAction, rotateLinkAction, revokeLinkAction } from "@/lib/secure-links/actions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState, FeedbackMessage, SubmitButton } from "@/components/ui";
 
 function maskTokenPrefix(prefix: string | null | undefined) {
   if (!prefix) {
@@ -12,12 +14,10 @@ function maskTokenPrefix(prefix: string | null | undefined) {
 
 export function LinkActions({
   planId,
-  endDate,
   activeLink,
   canManage
 }: {
   planId: string;
-  endDate: string;
   activeLink: { id: string; tokenPrefix: string | null; expiresAt: string } | null;
   canManage: boolean;
 }) {
@@ -26,11 +26,12 @@ export function LinkActions({
   const [revokeState, revokeAction, revokePending] = useActionState(revokeLinkAction, {});
 
   if (!canManage) {
-    return <div className="notice">Bu plan için güvenli bağlantı oluşturulamaz.</div>;
+    return <FeedbackMessage tone="info">Bu plan için güvenli bağlantı oluşturulamaz.</FeedbackMessage>;
   }
 
   const oneTimeLink = createPending || rotatePending ? null : (rotateState.link ?? createState.link);
   const revocableLinkId = rotateState.linkId ?? createState.linkId ?? activeLink?.id;
+  const linkError = createState.error ?? rotateState.error ?? revokeState.error;
 
   return (
     <div className="panel stack">
@@ -40,42 +41,48 @@ export function LinkActions({
           Aktif bağlantı · {maskTokenPrefix(activeLink.tokenPrefix)} · Son tarih {activeLink.expiresAt}
         </p>
       ) : (
-        <p>Aktif bağlantı yok.</p>
+        <EmptyState title="Aktif bağlantı yok" description="Danışan portalına erişim için güvenli bağlantı oluşturun." />
       )}
-      {revokeState.success ? <p className="notice">Bağlantı iptal edildi.</p> : null}
+      {revokeState.success ? <FeedbackMessage tone="success">Bağlantı iptal edildi.</FeedbackMessage> : null}
       {oneTimeLink ? (
-        <p className="notice" data-testid="plain-secure-link">
+        <p className="notice" data-testid="plain-secure-link" role="status" aria-live="polite">
           {oneTimeLink}
         </p>
       ) : null}
-      {createState.error || rotateState.error || revokeState.error ? (
-        <p className="form-error" role="alert">
-          {createState.error ?? rotateState.error ?? revokeState.error}
-        </p>
-      ) : null}
-      <div className="button-row">
+      {linkError ? <FeedbackMessage tone="error">{linkError}</FeedbackMessage> : null}
+      <div className="button-row link-actions-row">
         <form action={createAction}>
           <input type="hidden" name="planId" value={planId} />
-          <input type="hidden" name="endDate" value={endDate} />
-          <button className="button" type="submit" disabled={createPending}>
-            Güvenli bağlantı oluştur
-          </button>
+          <SubmitButton pendingLabel="Oluşturuluyor...">Güvenli bağlantı oluştur</SubmitButton>
         </form>
-        <form action={rotateAction}>
+        <ConfirmDialog
+          triggerLabel="Bağlantıyı yenile"
+          triggerClassName="button secondary"
+          dialogTitle="Güvenli bağlantıyı yenile"
+          dialogDescription="Yeni bağlantı oluşturulduğunda mevcut danışan bağlantısı geçersiz olur. Danışana yeni bağlantıyı ayrıca iletmeniz gerekir."
+          confirmLabel="Evet, bağlantıyı yenile"
+          formAction={rotateAction}
+          pending={rotatePending}
+          error={rotateState.error}
+        >
           <input type="hidden" name="planId" value={planId} />
-          <input type="hidden" name="endDate" value={endDate} />
-          <button className="button secondary" type="submit" disabled={rotatePending}>
-            Bağlantıyı yenile
-          </button>
-        </form>
+        </ConfirmDialog>
         {revocableLinkId && !revokeState.success ? (
-          <form action={revokeAction}>
+          <ConfirmDialog
+            triggerLabel="Bağlantıyı iptal et"
+            triggerClassName="button secondary"
+            dialogTitle="Güvenli bağlantıyı iptal et"
+            dialogDescription="Bağlantı iptal edildiğinde danışan portalına erişim kapanır. Yeni erişim için bağlantı yeniden oluşturulmalıdır."
+            confirmLabel="Evet, bağlantıyı iptal et"
+            destructive
+            formAction={revokeAction}
+            pending={revokePending}
+            error={revokeState.error}
+            success={revokeState.success}
+          >
             <input type="hidden" name="planId" value={planId} />
             <input type="hidden" name="linkId" value={revocableLinkId} />
-            <button className="button secondary" type="submit" disabled={revokePending}>
-              Bağlantıyı iptal et
-            </button>
-          </form>
+          </ConfirmDialog>
         ) : null}
       </div>
     </div>

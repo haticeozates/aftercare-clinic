@@ -98,7 +98,7 @@ export function computeDayAvailability(input: {
     return "readonly";
   }
 
-  if (input.planStatus === "scheduled" || input.planStartDate > input.today || input.dayDate > input.today) {
+  if (input.planStatus === "stopped" || input.planStartDate > input.today || input.dayDate > input.today) {
     return "locked";
   }
 
@@ -204,11 +204,4 @@ export function mapPortalError(error: unknown) {
   return "İşlem tamamlanamadı. Lütfen sayfayı yenileyin.";
 }
 
-export function checkPortalTaskMutationRateLimit(input: { route: string }) {
-  void input.route;
-
-  return {
-    allowed: true,
-    strategy: "local-hook" as const
-  };
-}
+export { checkPortalTaskMutationRateLimit } from "@/lib/rate-limit/security-routes";

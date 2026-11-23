@@ -2,6 +2,12 @@ import Link from "next/link";
 import { cloneElement, isValidElement } from "react";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactElement, ReactNode, SelectHTMLAttributes } from "react";
 
+export { FeedbackMessage } from "@/components/ui/feedback-message";
+export { FormStatusMessage } from "@/components/ui/form-status-message";
+export { SubmitButton } from "@/components/ui/submit-button";
+export { LoadingState } from "@/components/ui/loading-state";
+export { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
 type Tone = "teal" | "sage" | "gold" | "rose" | "neutral";
 type BadgeVariant = "success" | "warning" | "danger" | "neutral" | "info";
 
@@ -13,10 +19,10 @@ export function statusBadgeVariant(status: string): BadgeVariant {
   if (["active", "published", "completed"].includes(status)) {
     return "success";
   }
-  if (["open", "acknowledged", "scheduled", "draft", "available"].includes(status)) {
+  if (["open", "acknowledged", "scheduled", "draft", "available", "submitted", "under_review", "in_progress"].includes(status)) {
     return "warning";
   }
-  if (["stopped", "inactive", "archived", "revoked", "expired"].includes(status)) {
+  if (["stopped", "inactive", "archived", "revoked", "expired", "declined", "cancelled", "dismissed"].includes(status)) {
     return "danger";
   }
   return "neutral";

@@ -31,7 +31,7 @@ const ASSIGNMENT_RPC_ERROR_MESSAGES: Record<string, string> = {
   "permission denied": "Bu işlem için yetkiniz yok.",
   "document version is not published": "Yalnızca yayımlanmış belge versiyonu atanabilir.",
   "document is archived": "Arşivlenmiş belgelere atama yapılamaz.",
-  "invalid care plan": "Seçilen bakım planı bu müşteri için geçerli değil.",
+  "invalid care plan": "Seçilen bakım planı bu danışan için geçerli değil.",
   "assignment already exists": "Bu belge için zaten bekleyen bir atama var.",
   "assignment is not pending": "Yalnızca bekleyen atamalar iptal edilebilir.",
   "assignment already cancelled": "Bu atama zaten iptal edilmiş.",

@@ -3,6 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import type { PortalCheckInOption } from "@/lib/portal";
 
+const retryMessage = "Bildiriminiz kaydedilemedi. Lütfen tekrar deneyin.";
+
 const severityLabels = [
   ["1", "Çok hafif"],
   ["2", "Hafif"],
@@ -40,24 +42,28 @@ export function CheckInForm({
     setError("");
     setMessage("");
     startTransition(async () => {
-      const response = await fetch("/care/session/check-in", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          dayId,
-          items: options.map((option) => ({
-            optionId: option.id,
-            selected: selected[option.id] === true,
-            severity: option.allowsSeverity && selected[option.id] ? Number(severity[option.id]) : null
-          }))
-        })
-      });
-      const result = (await response.json()) as { error?: string; message?: string };
-      if (!response.ok) {
-        setError(result.error ?? "Bildiriminiz kaydedilemedi. Lütfen sayfayı yenileyin.");
-        return;
+      try {
+        const response = await fetch("/care/session/check-in", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            dayId,
+            items: options.map((option) => ({
+              optionId: option.id,
+              selected: selected[option.id] === true,
+              severity: option.allowsSeverity && selected[option.id] ? Number(severity[option.id]) : null
+            }))
+          })
+        });
+        const result = (await response.json()) as { error?: string; message?: string };
+        if (!response.ok) {
+          setError(result.error ?? retryMessage);
+          return;
+        }
+        setMessage(result.message ?? "Bildiriminiz kliniğinizin değerlendirmesi için kaydedildi.");
+      } catch {
+        setError(retryMessage);
       }
-      setMessage(result.message ?? "Bildiriminiz kliniğinizin değerlendirmesi için kaydedildi.");
     });
   }
 
@@ -75,8 +81,8 @@ export function CheckInForm({
 
       <div className="stack">
         {options.map((option) => (
-          <label className="check-card" key={option.id}>
-            <span>
+          <div className="check-card" key={option.id}>
+            <label>
               <input
                 type="checkbox"
                 checked={selected[option.id] === true}
@@ -86,7 +92,7 @@ export function CheckInForm({
                 }}
               />{" "}
               {option.label}
-            </span>
+            </label>
             {option.allowsSeverity && selected[option.id] ? (
               <select
                 aria-label={`${option.label} şiddet seçimi`}
@@ -102,12 +108,20 @@ export function CheckInForm({
                 ))}
               </select>
             ) : null}
-          </label>
+          </div>
         ))}
       </div>
 
-      {message ? <p className="success-message">{message}</p> : null}
-      {error ? <p className="error-message">{error}</p> : null}
+      {message ? (
+        <p className="success-message" role="status" aria-live="polite">
+          {message}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-message" role="alert">
+          {error}
+        </p>
+      ) : null}
       <button className="button" type="button" disabled={disabled || selectedSeverityRequired} onClick={submit}>
         {isPending ? "Kaydediliyor..." : alreadySubmitted ? "Kaydedildi" : "Kliniğe gönder"}
       </button>

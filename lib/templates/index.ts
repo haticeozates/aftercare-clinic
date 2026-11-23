@@ -26,6 +26,14 @@ export interface AlertRuleInput {
   configuration?: Record<string, unknown>;
 }
 
+export function templateVersionStatusLabel(status: TemplateVersionStatus) {
+  return {
+    draft: "Taslak",
+    published: "Yayınlandı",
+    retired: "Emekli"
+  }[status];
+}
+
 export interface PublishPreconditionsInput {
   templateActive: boolean;
   procedureActive: boolean;

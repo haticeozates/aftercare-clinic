@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { sanitizePortalDocumentAssignments, sanitizePortalDocumentError, type PortalDocumentAssignment, type PortalDocumentEvent } from "@/lib/consent/portal-contracts";
 import { getPortalSessionHash } from "@/lib/portal/service";
 
@@ -10,7 +10,7 @@ export async function getPortalDocumentAssignments(): Promise<PortalDocumentAssi
     return [];
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("get_portal_document_assignments", {
     target_session_hash: sessionHash
   });
@@ -26,7 +26,7 @@ export async function recordPortalDocumentEvent(assignmentId: string, eventType:
     return { error: "Oturumunuzun süresi dolmuş olabilir." };
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("record_portal_document_event", {
     target_session_hash: sessionHash,
     target_assignment_id: assignmentId,

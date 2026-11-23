@@ -57,7 +57,7 @@ select lives_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -66,8 +66,26 @@ select lives_ok(
 
 select is((select count(*)::int from public.care_plan_days where care_plan_id = (select id from public.care_plans order by created_at desc limit 1)), 1, 'Plan snapshot copies days');
 select is((select count(*)::int from public.care_plan_tasks where care_plan_day_id in (select id from public.care_plan_days where care_plan_id = (select id from public.care_plans order by created_at desc limit 1))), 1, 'Plan snapshot copies tasks');
-select is((select end_date from public.care_plans order by created_at desc limit 1), current_date, 'Plan end date uses max day number');
-select is((select scheduled_date from public.care_plan_days where care_plan_id = (select id from public.care_plans order by created_at desc limit 1) and day_number = 1), current_date, 'Plan day scheduled date is start date plus day offset');
+select is((select end_date from public.care_plans order by created_at desc limit 1), public.portal_today(), 'Plan end date uses max day number');
+select is((select scheduled_date from public.care_plan_days where care_plan_id = (select id from public.care_plans order by created_at desc limit 1) and day_number = 1), public.portal_today(), 'Plan day scheduled date is start date plus day offset');
+
+select lives_ok(
+  $$select public.create_care_plan_from_template(
+    '00000000-0000-4000-8000-00000000c103',
+    '00000000-0000-4000-8000-00000000d101',
+    '00000000-0000-4000-8000-00000000a401',
+    '00000000-0000-4000-8000-00000000a501',
+    public.portal_today(),
+    null,
+    null
+  )$$,
+  'Staff can create plan for portal today'
+);
+select is(
+  (select status from public.care_plans order by created_at desc limit 1),
+  'active',
+  'Plan starting on portal today is active'
+);
 
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
 select lives_ok(
@@ -76,7 +94,7 @@ select lives_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -90,7 +108,7 @@ select lives_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -103,7 +121,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d102',
     '00000000-0000-4000-8000-00000000a402',
     '00000000-0000-4000-8000-00000000a582',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -118,7 +136,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a502',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -140,7 +158,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -159,7 +177,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d102',
     '00000000-0000-4000-8000-00000000a402',
     '00000000-0000-4000-8000-00000000a582',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -178,7 +196,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -195,7 +213,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -210,7 +228,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d201',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -225,7 +243,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000b401',
     '00000000-0000-4000-8000-00000000b501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -240,7 +258,7 @@ select throws_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     '00000000-0000-4000-8000-00000000e203'
   )$$,
@@ -253,7 +271,7 @@ select is((select count(*)::int from public.care_plans where client_id = '000000
 
 select throws_ok(
   $$insert into public.care_plan_days (organization_id, care_plan_id, source_template_day_id, day_number, scheduled_date)
-    values ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e101', '00000000-0000-4000-8000-00000000a601', 99, current_date)$$,
+    values ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e101', '00000000-0000-4000-8000-00000000a601', 99, public.portal_today())$$,
   '42501',
   null,
   'Browser direct plan day insert is blocked'
@@ -276,7 +294,7 @@ select lives_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date + 10,
+    public.portal_today() + 10,
     null,
     null
   )$$,
@@ -292,7 +310,7 @@ select lives_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,
@@ -311,6 +329,15 @@ select is((select status from public.care_plans where id = '00000000-0000-4000-8
 
 prepare staff_stop_plan as update public.care_plans set status = 'stopped', stopped_at = now(), stopped_by_user_id = '00000000-0000-4000-8000-00000000a103' where id = '00000000-0000-4000-8000-00000000e102';
 select lives_ok('staff_stop_plan', 'Staff can stop own organization plan');
+select is(
+  (select stopped_by_user_id from public.care_plans where id = '00000000-0000-4000-8000-00000000e102'),
+  '00000000-0000-4000-8000-00000000a103'::uuid,
+  'The stopped plan retains staff attribution with restricted column access'
+);
+select ok(
+  not has_column_privilege('authenticated', 'public.care_plans', 'updated_by_user_id', 'UPDATE'),
+  'Stopping a plan does not require broadening client update privileges'
+);
 
 prepare source_relation_update as update public.care_plans set client_id = '00000000-0000-4000-8000-00000000c102' where id = '00000000-0000-4000-8000-00000000e101';
 select throws_ok('source_relation_update', '42501', null, 'Plan source relations are immutable');
@@ -319,10 +346,10 @@ prepare hard_delete_plan as delete from public.care_plans where id = '00000000-0
 select throws_ok('hard_delete_plan', '42501', null, 'Plan hard delete is blocked');
 
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a103');
-select lives_ok($$select public.create_secure_link_for_plan('00000000-0000-4000-8000-00000000e101', 'hash-test-a', 'tok', now() + interval '3 days')$$, 'Staff can create secure link for own organization plan');
+select lives_ok($$select public.create_secure_link_for_plan('00000000-0000-4000-8000-00000000e101', 'hash-test-a', 'one', now() + interval '3 days')$$, 'Staff can create secure link for own organization plan');
 select is((select count(*)::int from public.secure_links where care_plan_id = '00000000-0000-4000-8000-00000000e101' and status = 'active'), 1, 'Plan has one active link');
-select is((select count(*)::int from public.secure_links where token_hash = 'plain-token-value'), 0, 'Plain token is not stored as hash');
 reset role;
+select is((select count(*)::int from public.secure_links where token_hash = 'plain-token-value'), 0, 'Plain token is not stored as hash');
 select throws_ok($$insert into public.secure_links (organization_id, care_plan_id, token_hash, token_prefix, expires_at, created_by_user_id) values ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000e101', 'hash-test-a', 'dup', now() + interval '3 days', '00000000-0000-4000-8000-00000000a101')$$, '23505', null, 'Token hash unique constraint rejects duplicates');
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a103');
 
@@ -334,15 +361,18 @@ select throws_ok($$insert into public.secure_links (organization_id, care_plan_i
 prepare direct_link_update as update public.secure_links set status = 'revoked' where id = '00000000-0000-4000-8000-00000000a911';
 select throws_ok('direct_link_update', '42501', null, 'Browser direct secure link update is blocked');
 
-select lives_ok($$select public.create_secure_link_for_plan('00000000-0000-4000-8000-00000000e101', 'hash-test-b', 'tok', now() + interval '4 days')$$, 'Second create rotates old link');
+select lives_ok($$select public.create_secure_link_for_plan('00000000-0000-4000-8000-00000000e101', 'hash-test-b', 'two', now() + interval '4 days')$$, 'Second create rotates old link');
 select is((select count(*)::int from public.secure_links where care_plan_id = '00000000-0000-4000-8000-00000000e101' and status = 'active'), 1, 'Only one active link per plan');
-select is((select status from public.secure_links where token_hash = 'hash-test-a'), 'revoked', 'Old link revoked by rotation');
-select isnt((select rotated_from_link_id from public.secure_links where token_hash = 'hash-test-b'), null, 'Rotated link references prior link');
+select is((select status from public.secure_links where token_prefix = 'one'), 'revoked', 'Old link revoked by rotation');
+select isnt((select rotated_from_link_id from public.secure_links where token_prefix = 'two'), null, 'Rotated link references prior link');
 
+set local role service_role;
 select is((select public.validate_secure_link_hash('hash-test-b')) is not null, true, 'New token hash validates');
 select is((select public.validate_secure_link_hash('hash-test-a')) is null, true, 'Old rotated hash does not validate');
 
-select lives_ok($$select public.revoke_secure_link((select id from public.secure_links where token_hash = 'hash-test-b'))$$, 'Secure link can be revoked');
+select pg_temp.as_user('00000000-0000-4000-8000-00000000a103');
+select lives_ok($$select public.revoke_secure_link((select id from public.secure_links where token_prefix = 'two'))$$, 'Secure link can be revoked');
+set local role service_role;
 select is((select public.validate_secure_link_hash('hash-test-b')) is null, true, 'Revoked link does not validate');
 select is((select public.validate_secure_link_hash('invalid-hash')) is null, true, 'Invalid hash returns generic null');
 reset role;
@@ -360,8 +390,12 @@ select pg_temp.as_anon();
 prepare anon_link_read as select count(*)::int from public.secure_links;
 select throws_ok('anon_link_read', '42501', null, 'Anon cannot read secure links table');
 
-select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
-select lives_ok($$select public.create_portal_session_for_link('hash-seed-beta', 'session-hash-test', now() + interval '15 minutes')$$, 'Valid token can create portal session');
+reset role;
+create temporary table phase4_beta_link as select token_hash from public.secure_links
+where id = '00000000-0000-4000-8000-00000000b911';
+grant select on phase4_beta_link to service_role;
+set local role service_role;
+select lives_ok($$select public.create_portal_session_for_link((select token_hash from phase4_beta_link), 'session-hash-test', now() + interval '15 minutes')$$, 'Valid token can create portal session');
 select is((select public.validate_portal_session_hash('session-hash-test')) is not null, true, 'Portal session validates');
 select is((select public.validate_portal_session_hash('missing-session')) is null, true, 'Invalid portal session fails');
 select is((select public.create_portal_session_for_link('invalid-hash', 'session-invalid-test', now() + interval '15 minutes')) is null, true, 'Invalid token cannot create portal session');
@@ -378,7 +412,7 @@ select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
 prepare direct_portal_session_read as select count(*)::int from public.portal_sessions;
 select throws_ok('direct_portal_session_read', '42501', null, 'Portal session rows are not browser-readable');
 select pg_temp.as_user('00000000-0000-4000-8000-00000000b101');
-select is((select usage_count from public.secure_links where token_hash = 'hash-seed-beta'), 1, 'Validation updates usage count');
+select is((select usage_count from public.secure_links where id = '00000000-0000-4000-8000-00000000b911'), 1, 'Validation updates usage count');
 
 select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
 select lives_ok(
@@ -387,7 +421,7 @@ select lives_ok(
     '00000000-0000-4000-8000-00000000d101',
     '00000000-0000-4000-8000-00000000a401',
     '00000000-0000-4000-8000-00000000a501',
-    current_date,
+    public.portal_today(),
     null,
     null
   )$$,

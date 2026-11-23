@@ -1,128 +1,110 @@
-# AfterCare Clinic Platform
+# AfterCare Clinic
 
-Production-oriented foundation for AfterCare Clinic. This project is intentionally separate from `aftercare-clinic-demo` and from all game/demo projects.
+**V1.0 Portfolio Edition** · Clinic operations and post-procedure follow-up
 
-## Current Scope
+AfterCare Clinic connects a clinic workspace with a mobile patient portal. The portfolio release candidate runs on fictional clinics, patients, and operations. It models administrative follow-up and records clinic decisions, with clinical judgment left to the care team. See the [v1.0 release notes](RELEASE_NOTES.md).
 
-Included through Faz 8.3B:
+## Problem
 
-- Next.js App Router + TypeScript foundation
-- Local Supabase/Postgres development workflow
-- Supabase SSR client helpers and server-only service clients
-- Organization, role, permission and active membership model
-- Tenant isolation, RLS, pgTAP and local RLS regression coverage
-- Append-only audit foundation with metadata allowlists
-- Tenant-safe client and procedure records
-- Local Supabase Auth email/password clinic sessions
-- Owner/admin/staff role-based browser E2E coverage
-- Immutable care template versioning
-- Care plan snapshots from published template versions
-- Secure care links with hash-only token storage
-- Scoped HttpOnly portal sessions
-- Client care portal for daily tasks and append-only task event history
-- Structured portal check-ins and deterministic clinical alert review
-- Premium clinical design system, clinic shell and responsive portal UI
-- Private photo upload foundation with incoming/final buckets
-- Server-validated photo upload intent, finalize, metadata stripping and WebP normalization
-- Clinic secure photo viewing through short-lived signed view URLs
-- Conservative orphan photo cleanup infrastructure with dry-run and protected execute mode
-- Immutable consent document foundation
-- Notice acknowledgment and consent decision event history
-- Portal document decisions for assigned published document versions
-- Portal data request submission as a review workflow record
-- Clinic consent document management (draft, publish, retire, archive)
-- Clinic client document assignment create/cancel with portal visibility boundaries
-- Clinic data request review with staff assignee assignment and event history
-- Synthetic local/test seed and deterministic test fixtures
+An appointment, a follow-up plan, a patient’s daily tasks, and the clinic’s review queue often live in separate tools. AfterCare groups these steps around one care plan so staff can see what is due, patients can follow the plan shared by their clinic, and each organization can keep its records isolated.
 
-## Explicitly Out Of Scope
+## Product tour
 
-- Real patients, real health records, real phone/email data or real clinical content
-- Real legal/KVKK document text or legal-compliance claims
-- Electronic signature, signature canvas, browser fingerprinting, location capture or IP-based legal proof
-- Automatic data export, automatic deletion or backup deletion
-- Appointment scheduling
-- Public marketing/landing page
-- WhatsApp, SMS, email notification systems
-- Payment, analytics, AI or image analysis
-- Remote Supabase project access or production deployment
+| Area | Working flows |
+| --- | --- |
+| Public website | Product pages, FAQ, privacy and terms drafts, clinic sign-in, local-only demo and contact forms |
+| Clinic workspace | Clients, procedures, published template versions, care plan snapshots, alerts, consents, data requests, clinic settings and team |
+| Patient portal | Revocable secure link, scoped session, daily tasks, check-ins, requested photo uploads, consent decisions and data requests |
+| Appointments | Calendar, mobile agenda, specialist availability, appointment states and gated local online booking |
+| Notifications | In-app inbox, read state, preferences and local Mailpit notification delivery |
+| Analytics | Date and status filters, specialist scoping, period comparisons and aggregate CSV |
 
-## Local Setup
+| Clinic dashboard | Mobile patient portal |
+| --- | --- |
+| ![Fictional clinic dashboard](public/aftercare/clinic.webp) | ![Patient portal with synthetic task progress](public/aftercare/portal.webp) |
 
-```bash
-npm install
-cp .env.example .env.local
-npm run supabase:start
-npm run db:reset
-npm run verify:phase8
+| Appointment calendar | Analytics |
+| --- | --- |
+| ![Appointment calendar with synthetic data](public/aftercare/takvim-operasyon.jpg) | ![Reports calculated from fictional clinic records](public/aftercare/analitik-operasyon.jpg) |
+
+The screens above use the bundled [Inter and Gelasio typefaces](docs/references/bundled-typefaces.md), including their Turkish glyphs.
+
+## Roles
+
+- **Owner** manages the clinic, team and operational work. **Admin** handles clinic operations and authorized administration under the organization’s permissions.
+- **Staff** operates within assigned scopes. Tenant membership and resource policies protect data independently of the navigation.
+- **Patient** opens a clinic-issued link that exchanges for a bounded portal session. The session is scoped to the assigned plan.
+- **Public visitor** can explore the product pages. Hosted inquiry forms and public signup are disabled for the portfolio plan.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Public[Public website] --> Next[Next.js App Router]
+    Staff[Clinic team] --> Next
+    Patient[Patient with an issued link] --> Next
+    Next --> Auth[Supabase Auth]
+    Next --> DB[PostgreSQL / RLS / scoped RPCs]
+    Next --> Photos[Supabase private Storage]
+    DB --> Worker[Local notification worker]
+    Worker --> Mail[Mailpit]
 ```
 
-Supabase CLI is installed as a dev dependency and should be run through npm scripts:
+- **Application** uses Next.js App Router, React, TypeScript, Zod and a shared responsive CSS design system. Sharp normalizes uploaded images. Application services and route handlers own authentication, request validation and sensitive responses.
+- **Data boundary** uses Supabase Auth and PostgreSQL memberships, permissions, tenant-scoped foreign keys and row-level security. Care plans snapshot published template versions. Append-only events preserve task, consent and review history.
+- **Portal and photos** use hash-only link tokens, short-lived HttpOnly sessions, revocation and request limits. Private uploads pass through validation and metadata stripping. Photo access uses short-lived signed URLs.
+- **Secrets** stay server-side. The Supabase public key has limited scope. Session cookies, operational data and signed photo URLs are excluded from public pages and shared caches.
+
+## Local installation
+
+Use Node.js 24, npm, Git and a running Docker engine. Use a fresh clone and a dedicated local Supabase stack. Check that the project ID and ports in `supabase/config.toml` do not identify an existing database before starting or running reset-based checks.
 
 ```bash
+npm ci
 npm run supabase:start
-npm run supabase:status
-npm run db:reset
-npm run db:lint
-npm run test:db
-npm run test:rls:local
+npm run supabase:write-env
+npm run dev
 ```
 
-If the CLI is not installed, SQL migrations and seed files can still be reviewed, but real RLS integration tests cannot run against local Postgres.
+Open `http://localhost:3000`. The local seed creates synthetic clinic accounts. Use the credentials described in the [local demo runbook](docs/playbooks/demo-runbook.md). `supabase:write-env` writes the local connection settings to the Git-ignored `.env.local` file. Keep those settings on your machine.
 
-Local auth users are synthetic `.test` accounts created by `supabase/seed.sql`. Use only local/test credentials and never store real user, client, health, legal, phone, email, photo or production credential data in this project.
+The standard seed supplies stable regression fixtures. The fictional screen-gallery dataset is an optional overlay documented in the [showcase setup](docs/playbooks/portfolio-showcase.md).
 
-## Environment
+## Environment configuration
 
-Server-only:
+See [`.env.example`](.env.example) for names and placeholders. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and the optional `AFTERCARE_PUBLIC_SITE_URL` are public. `APP_ENV` and the project references select the environment. The service-role key, audit and rate-limit peppers, and cleanup tokens are server-only. Use dedicated server secrets and environment-scoped settings for any hosted preview.
 
-- `APP_ENV`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_PROJECT_REF`
-- `PRODUCTION_SUPABASE_PROJECT_REF`
-- `AUDIT_LOG_PEPPER`
-- `PHOTO_CLEANUP_SECRET`
-
-Public:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-Secrets must not be logged. `SUPABASE_SERVICE_ROLE_KEY`, `AUDIT_LOG_PEPPER` and cleanup secrets must never be prefixed with `NEXT_PUBLIC_` and must never be imported by client components.
-
-## Test Commands
+## Testing
 
 ```bash
 npm run lint
 npm run typecheck
 npm test
-npm run test:unit
-npm run test:integration
-npm run test:rls:local
-npm run test:auth
-npm run test:photos
-npm run test:consent
-npm run test:data-requests
-npm run test:portal-consent
-npm run test:portal-data-requests
-npm run test:e2e:phase7
-npm run test:e2e:phase7-ui
-npm run test:e2e:phase7-view
-npm run test:e2e:phase7-cleanup
-npm run test:e2e:phase8
 npm run build
-npm run verify
-npm run verify:phase8
+npm run verify:migration-integrity
+npm run test:db
+npm run test:rls:local
+npm audit --audit-level=high
+npm audit --omit=dev --audit-level=high
 ```
 
-## Security Notes
+`verify:phase9b` and `verify:predeploy` exercise end-to-end behavior, migrations, SQL contracts, tenant isolation, photo boundaries and demo readiness. Both reset the active local test database. Run them only in a disposable stack. `verify:predeploy` includes its own clean `npm ci` installation. Playwright covers clinical, patient and public flows with seeded users and local Mailpit. The portfolio golden journey covers care plan creation through link revocation. Use the [cross-browser config](playwright.cross-browser.config.ts) for Firefox and WebKit on the same isolated stack.
 
-Secure link validation and portal mutations use local rate-limit hooks where durable distributed limiting is not yet part of the product. A shared durable limiter remains a future hardening task before real production data.
+```bash
+npx playwright install chromium firefox webkit
+npm run verify:phase9b
+npm run verify:predeploy
+npx playwright test --config playwright.cross-browser.config.ts tests/e2e/portfolio-golden-journey.spec.ts --project=firefox
+```
 
-Photo upload uses a private incoming bucket, server-side validation, WebP normalization, private final storage and short-lived signed view URLs. Raw tokens, signed URLs and storage keys must not be written to audit metadata or user-facing logs.
+## Public presentation
 
-Consent and data request records are technical workflow records. Notice acknowledgment is not consent. Consent accept, decline and withdrawal are append-only events. Withdrawal does not automatically delete data or photos. Data requests do not automatically export or delete data.
+The first public portfolio release is a standalone, read-only screenshot gallery. It uses the same fictional clinic imagery as the product tour and runs without an application server, database or credentials. The gallery is published separately from the operational application. A hosted interactive demo remains a separate future stage.
 
-## Synthetic Data Rule
+## Portfolio Edition limitations
 
-Only synthetic local/test data is allowed. Do not store real users, client records, health data, legal documents, photos, tokens or production credentials in this repository.
+The dataset is fictional. Public claims, analytics and screenshots describe the software and synthetic operations. The demo has no public patient-data intake, real email/SMS/WhatsApp delivery, billing, or production operations. The privacy and terms pages are drafts. Hosted interactivity requires an independently isolated project and explicit publication approval. Physical iOS validation and a formal healthcare or legal review are outside the local release candidate.
+
+## Roadmap
+
+The original [master roadmap](docs/product/master-roadmap.md) is preserved. The portfolio includes Phase 10 public experience, Phase 11 local clinic administration, Phase 12 appointments, Phase 13 local notifications and Phase 15 analytics. Phase 14 billing, Phase 16 platform operations and Phase 17 production go-live remain reserved for a later decision.

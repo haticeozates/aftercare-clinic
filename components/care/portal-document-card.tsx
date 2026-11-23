@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { PortalDocumentAssignment, PortalDocumentDecision, PortalDocumentEvent } from "@/lib/consent/portal-contracts";
+import { trapTabFocus } from "@/lib/consent/clinic-ui";
+import { FeedbackMessage } from "@/components/ui";
 
 const decisionLabels: Record<PortalDocumentDecision, string> = {
   not_recorded: "Bekliyor",
@@ -32,12 +34,18 @@ export function PortalDocumentCard({ assignment }: { assignment: PortalDocumentA
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const wasOpen = useRef(false);
   const dialogTitle = `document-dialog-title-${assignment.assignmentId}`;
 
   useEffect(() => {
     if (open) {
-      dialogRef.current?.focus();
+      const closeButton = dialogRef.current?.querySelector<HTMLElement>('[aria-label="Kapat"]');
+      (closeButton ?? dialogRef.current)?.focus();
+    } else if (wasOpen.current) {
+      triggerRef.current?.focus({ preventScroll: true });
     }
+    wasOpen.current = open;
   }, [open]);
 
   async function submit(action: "acknowledge" | "accept" | "decline" | "withdraw") {
@@ -71,7 +79,7 @@ export function PortalDocumentCard({ assignment }: { assignment: PortalDocumentA
   }
 
   return (
-    <article className="portal-task-card">
+    <article className="portal-task-card portal-document-card">
       <div className="stack">
         <div className="button-row">
           <span className="badge">{assignment.documentKind === "notice" ? "Bilgilendirme" : "Tercih belgesi"}</span>
@@ -82,11 +90,17 @@ export function PortalDocumentCard({ assignment }: { assignment: PortalDocumentA
         <p className="label">Versiyon {assignment.versionNumber}</p>
         {assignment.summaryText ? <p>{assignment.summaryText}</p> : null}
       </div>
-      <button className="button secondary" type="button" onClick={() => setOpen(true)} aria-label={`${assignment.title} belgesini görüntüle`}>
+      <button
+        ref={triggerRef}
+        className="button secondary"
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`${assignment.title} belgesini görüntüle`}
+      >
         Belgeyi görüntüle
       </button>
-      {message ? <p className="success-message" aria-live="polite">{message}</p> : null}
-      {error ? <p className="error-message" role="alert">{error}</p> : null}
+      {message ? <FeedbackMessage tone="success">{message}</FeedbackMessage> : null}
+      {error ? <FeedbackMessage tone="error">{error}</FeedbackMessage> : null}
 
       {open ? (
         <div className="modal-backdrop" onClick={() => setOpen(false)}>
@@ -101,6 +115,10 @@ export function PortalDocumentCard({ assignment }: { assignment: PortalDocumentA
             onKeyDown={(event) => {
               if (event.key === "Escape") {
                 setOpen(false);
+                return;
+              }
+              if (dialogRef.current) {
+                trapTabFocus(event.nativeEvent, dialogRef.current);
               }
             }}
           >
@@ -116,17 +134,35 @@ export function PortalDocumentCard({ assignment }: { assignment: PortalDocumentA
             <p className="label">Versiyon {assignment.versionNumber}</p>
             <pre className="document-body">{assignment.bodyText}</pre>
             {assignment.documentKind === "notice" ? (
-              <button className="button" type="button" disabled={isPending || decision === "acknowledged"} onClick={() => submit("acknowledge")}>
+              <button
+                className="button"
+                type="button"
+                disabled={isPending || decision === "acknowledged"}
+                aria-busy={isPending}
+                onClick={() => submit("acknowledge")}
+              >
                 {isPending ? "Kaydediliyor..." : "Okudum / Görüntüledim"}
               </button>
             ) : (
               <div className="stack">
                 <div className="button-row">
-                  <button className="button" type="button" disabled={isPending || decision !== "not_recorded"} onClick={() => submit("accept")}>
-                    Kabul ediyorum
+                  <button
+                    className="button"
+                    type="button"
+                    disabled={isPending || decision !== "not_recorded"}
+                    aria-busy={isPending}
+                    onClick={() => submit("accept")}
+                  >
+                    {isPending ? "Kaydediliyor..." : "Kabul ediyorum"}
                   </button>
-                  <button className="button secondary" type="button" disabled={isPending || decision !== "not_recorded"} onClick={() => submit("decline")}>
-                    Kabul etmiyorum
+                  <button
+                    className="button secondary"
+                    type="button"
+                    disabled={isPending || decision !== "not_recorded"}
+                    aria-busy={isPending}
+                    onClick={() => submit("decline")}
+                  >
+                    {isPending ? "Kaydediliyor..." : "Kabul etmiyorum"}
                   </button>
                 </div>
                 {decision === "accepted" ? (
@@ -134,8 +170,8 @@ export function PortalDocumentCard({ assignment }: { assignment: PortalDocumentA
                     <p>Geri çekmek verilerinizi otomatik silmez; talebiniz ayrıca klinik tarafından değerlendirilir.</p>
                     {confirmWithdrawal ? (
                       <div className="button-row">
-                        <button className="button secondary" type="button" disabled={isPending} onClick={() => submit("withdraw")}>
-                          Geri çekmeyi onayla
+                        <button className="button secondary" type="button" disabled={isPending} aria-busy={isPending} onClick={() => submit("withdraw")}>
+                          {isPending ? "Kaydediliyor..." : "Geri çekmeyi onayla"}
                         </button>
                         <button className="button ghost" type="button" disabled={isPending} onClick={() => setConfirmWithdrawal(false)}>
                           Vazgeç

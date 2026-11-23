@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createDraftFromPublishedAction } from "@/lib/templates/actions";
+import { templateVersionStatusLabel } from "@/lib/templates";
 import { getTemplateDetail } from "@/lib/templates/service";
 
 export const dynamic = "force-dynamic";
@@ -54,9 +55,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
             <article className="item-card" key={version.id}>
               <div>
                 <h3>v{version.versionNumber}</h3>
-                <span className="badge">
-                  {version.status === "published" ? "Yayınlandı" : version.status === "draft" ? "Taslak" : "Retired"}
-                </span>
+                <span className="badge">{templateVersionStatusLabel(version.status)}</span>
               </div>
               <Link
                 className="button secondary"

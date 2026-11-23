@@ -20,6 +20,16 @@ export function consentDocumentStatusLabel(status: ConsentDocumentUiStatus) {
   }[status];
 }
 
+export function consentPurposeKeyLabel(purposeKey: string) {
+  return (
+    {
+      local_notice: "Yerel bilgilendirme",
+      local_test: "Temsili test amacı",
+      demo_pilot_notice: "Pilot bilgilendirme"
+    }[purposeKey] ?? "Özel belge amacı"
+  );
+}
+
 export function hasActiveDraftVersion(versions: ConsentVersionUiRecord[]) {
   return versions.some((version) => version.status === "draft");
 }

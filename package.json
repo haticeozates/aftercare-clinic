@@ -1,6 +1,6 @@
 {
   "name": "aftercare-clinic-platform",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
+    "test:env-contract": "vitest run tests/unit/env.test.ts",
     "test:integration": "vitest run tests/integration",
     "test:clients": "vitest run tests/unit/clients.test.ts tests/integration/phase2-permissions.test.ts",
     "test:procedures": "vitest run tests/unit/procedures.test.ts tests/integration/phase2-permissions.test.ts",
@@ -23,6 +24,7 @@
     "test:clinic-consent": "vitest run tests/unit/clinic-consent.test.ts tests/unit/clinic-consent-ui.test.ts",
     "test:clinic-assignment": "vitest run tests/unit/clinic-consent-assignment.test.ts tests/unit/phase8-3b-corrections.test.ts",
     "test:data-requests": "vitest run tests/unit/data-requests.test.ts tests/unit/data-request-review.test.ts tests/unit/phase8-3b-corrections.test.ts",
+    "test:rate-limit": "vitest run tests/unit/rate-limit-foundation.test.ts tests/unit/rate-limit.test.ts tests/unit/phase9a-rate-limit-gaps.test.ts tests/unit/phase9a-stage2-gaps.test.ts tests/unit/phase9a-stage2.test.ts tests/integration/rate-limit.test.ts tests/integration/phase9a-stage2-boundaries.test.ts",
     "test:portal-consent": "vitest run tests/unit/portal-consent.test.ts",
     "test:portal-data-requests": "vitest run tests/unit/portal-data-requests.test.ts",
     "test:ui": "vitest run tests/unit/ui.test.tsx",
@@ -37,6 +39,16 @@
     "test:e2e:phase7-view": "playwright test tests/e2e/phase7-clinic-photo-viewer.spec.ts --project=chromium",
     "test:e2e:phase7-cleanup": "PHOTO_CLEANUP_SECRET=local-photo-cleanup-secret-32-chars playwright test tests/e2e/phase7-photo-cleanup.spec.ts --project=chromium",
     "test:e2e:phase8": "playwright test tests/e2e/phase8-consent-data-requests.spec.ts tests/e2e/phase8-portal-decisions.spec.ts tests/e2e/phase8-clinic-consent-management.spec.ts tests/e2e/phase8-clinic-consent-assignment.spec.ts tests/e2e/phase8-clinic-data-request-review.spec.ts --project=chromium",
+    "test:e2e:phase9a-rate-limit": "RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD=3 RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS=60 playwright test tests/e2e/phase9a-rate-limit.spec.ts --project=chromium",
+    "test:e2e:phase9a-stage2": "RATE_LIMIT_CLEANUP_SECRET=local-rate-limit-cleanup-secret-32 RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_THRESHOLD=3 RATE_LIMIT_SECURE_LINK_TOKEN_VALIDATION_WINDOW_SECONDS=60 playwright test tests/e2e/phase9a-stage2-hardening.spec.ts --project=chromium",
+    "test:e2e:phase9b-photo-request": "playwright test tests/e2e/phase9b-clinic-photo-request.spec.ts --project=chromium",
+    "test:e2e:phase9b-demo": "playwright test tests/e2e/phase9b-demo-readiness.spec.ts --project=chromium",
+    "test:e2e:phase9b-ui": "playwright test tests/e2e/phase9b-ui-feedback.spec.ts --project=chromium",
+    "test:e2e:phase9b-mobile-a11y": "playwright test tests/e2e/phase9b-mobile-a11y-copy.spec.ts --project=chromium",
+    "test:e2e:phase9b-final-ui": "playwright test tests/e2e/phase9b-final-ui-polish.spec.ts --project=chromium",
+    "test:e2e:phase9b-pilot-golden-journey": "playwright test tests/e2e/phase9b-pilot-golden-journey.spec.ts --project=chromium",
+    "demo:setup": "node scripts/setup-phase9b-demo.mjs",
+    "demo:reset": "node scripts/reset-phase9b-demo.mjs",
     "test:e2e:design": "playwright test tests/e2e/phase6-ui-design.spec.ts --project=chromium",
     "test:rls": "npm run test:rls:static",
     "test:rls:static": "vitest run tests/rls/sql-policy.test.ts",
@@ -44,9 +56,10 @@
     "supabase:start": "HOME=.supabase-home npx supabase start",
     "supabase:stop": "HOME=.supabase-home npx supabase stop",
     "supabase:status": "HOME=.supabase-home npx supabase status",
+    "supabase:write-env": "node scripts/write-local-env-from-supabase.mjs",
     "photo:cleanup:dry-run": "node scripts/photo-cleanup.mjs",
     "photo:cleanup:execute": "node scripts/photo-cleanup.mjs --execute",
-    "db:reset": "HOME=.supabase-home npx supabase db reset",
+    "db:reset": "HOME=.supabase-home npx supabase db reset --local",
     "db:lint": "HOME=.supabase-home npx supabase db lint --level error --local --schema public",
     "test:db": "HOME=.supabase-home npx supabase test db supabase/tests --local",
     "verify": "npm run lint && npm run typecheck && npm test && npm run build",
@@ -60,20 +73,41 @@
     "verify:phase6": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:e2e:phase6 && npm run verify && npm audit",
     "verify:phase6-ui": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:e2e:phase2 && npm run test:e2e:phase3 && npm run test:e2e:phase4 && npm run test:e2e:phase5 && npm run test:e2e:phase6 && npm run test:ui && npm run test:e2e:design && npm run verify && npm audit",
     "verify:phase7": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run test:e2e:phase7 && npm run test:e2e:phase7-ui && npm run test:e2e:phase7-view && npm run test:e2e:phase7-cleanup && npm run verify && npm audit",
-    "verify:phase8": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run test:consent && npm run test:clinic-consent && npm run test:clinic-assignment && npm run test:data-requests && npm run test:portal-consent && npm run test:portal-data-requests && npm run test:e2e:phase7 && npm run test:e2e:phase7-ui && npm run test:e2e:phase7-view && npm run test:e2e:phase7-cleanup && npm run test:e2e:phase8 && npm run verify && npm audit"
+    "verify:phase8": "npm run supabase:status && npm run db:reset && npm run db:reset && npm run db:lint && npm run test:db && npm run test:rls:local && npm run test:auth && npm run test:plans && npm run test:secure-links && npm run test:portal && npm run test:symptoms && npm run test:alerts && npm run test:photos && npm run test:consent && npm run test:clinic-consent && npm run test:clinic-assignment && npm run test:data-requests && npm run test:portal-consent && npm run test:portal-data-requests && npm run test:e2e:phase7 && npm run test:e2e:phase7-ui && npm run test:e2e:phase7-view && npm run test:e2e:phase7-cleanup && npm run test:e2e:phase8 && npm run verify && npm audit",
+    "verify:predeploy": "node scripts/verify-predeploy.mjs",
+    "verify:phase9b": "node scripts/verify-phase9b.mjs",
+    "verify:linux-node24-clean": "node scripts/verify-linux-node24-clean.mjs",
+    "verify:migration-integrity": "node scripts/verify-migration-integrity.mjs",
+    "verify:repository-hygiene": "node scripts/verify-repository-hygiene.mjs",
+    "verify:tracked-worktree": "node scripts/verify-tracked-worktree.mjs",
+    "test:e2e:public": "playwright test tests/e2e/phase10-public-site.spec.ts --project=chromium",
+    "test:e2e:phase11": "playwright test tests/e2e/phase11-onboarding.spec.ts --project=chromium",
+    "test:e2e:final-uiux": "playwright test tests/e2e/portfolio-final-uiux.spec.ts --project=chromium",
+    "test:e2e:phase15": "playwright test tests/e2e/phase15-analytics.spec.ts --project=chromium",
+    "test:e2e:phase13": "playwright test tests/e2e/phase13-notifications.spec.ts --project=chromium",
+    "notifications:worker": "node scripts/run-notification-worker.mjs",
+    "test:e2e:phase12": "playwright test tests/e2e/phase12-appointments.spec.ts --project=chromium"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.87.0",
-    "next": "^16.2.10",
+    "next": "16.4.6",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "server-only": "^0.0.1",
-    "sharp": "^0.35.3",
-    "zod": "^4.2.1"
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
   },
   "overrides": {
-    "postcss": "^8.5.16"
+    "postcss": "^8.5.29",
+    "sharp": "$sharp",
+    "baseline-browser-mapping@2": "^2.11.0",
+    "brace-expansion@1": "^1.1.21",
+    "brace-expansion@5": "^5.0.12",
+    "browserslist@4": "^4.28.7",
+    "js-yaml@4": "^4.3.2",
+    "picomatch@4": "^4.0.7",
+    "vite@8": "^8.1.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
@@ -84,11 +118,11 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.2",
-    "eslint-config-next": "^16.2.10",
+    "eslint-config-next": "16.4.6",
     "pg": "^8.16.3",
     "prettier": "^3.7.4",
     "supabase": "^2.109.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "4.1.12"
   }
 }

@@ -54,102 +54,58 @@ async function connect() {
 async function createPhase7ClaimFixture() {
   const db = await connect();
   const organizationId = "00000000-0000-4000-8000-0000000000a1";
-  const carePlanId = "00000000-0000-4000-8000-00000000e101";
-  const secureLinkId = "00000000-0000-4000-8000-00000000a911";
-  const sourceTemplateDayId = "00000000-0000-4000-8000-00000000a601";
-  const createdByUserId = "00000000-0000-4000-8000-00000000a101";
-  const carePlanDayId = crypto.randomUUID();
+  const ownerId = "00000000-0000-4000-8000-00000000a101";
+  const tokenHash = crypto.randomBytes(32).toString("hex");
+  const portalSessionHash = crypto.randomBytes(32).toString("hex");
   const photoRequestId = crypto.randomUUID();
-  const portalSessionHash = `phase7-claim-${crypto.randomUUID()}`;
   const intentId = crypto.randomUUID();
 
-  await db.query("begin");
-  await db.query("select set_config('app.creating_care_plan_snapshot', 'on', true)");
-  await db.query(
-    `
-      insert into public.care_plan_days (
-        id,
-        organization_id,
-        care_plan_id,
-        source_template_day_id,
-        day_number,
-        scheduled_date,
-        title,
-        status
+  try {
+    await asAuthenticated(db, ownerId);
+    const plan = await db.query<{ id: string }>(
+      `select public.create_care_plan_from_template(
+        '00000000-0000-4000-8000-00000000c101',
+        '00000000-0000-4000-8000-00000000d101',
+        '00000000-0000-4000-8000-00000000a401',
+        '00000000-0000-4000-8000-00000000a501',
+        public.portal_today(), null, null
+      ) as id`
+    );
+    const carePlanId = plan.rows[0].id;
+    await db.query("select public.create_secure_link_for_plan($1, $2, 'p7')", [carePlanId, tokenHash]);
+
+    await db.query("reset role");
+    const session = await db.query<{ id: string }>("select public.create_portal_session_for_link($1, $2) as id", [
+      tokenHash, portalSessionHash
+    ]);
+    const day = await db.query<{ id: string }>(
+      "select id from public.care_plan_days where care_plan_id = $1 and scheduled_date = public.portal_today()",
+      [carePlanId]
+    );
+    const carePlanDayId = day.rows[0].id;
+
+    await db.query(
+      `insert into public.photo_requests
+        (id, organization_id, care_plan_id, care_plan_day_id, label, required, created_by_user_id, status)
+        values ($1, $2, $3, $4, 'Temsili fotoğraf talebi', false, $5, 'active')`,
+      [photoRequestId, organizationId, carePlanId, carePlanDayId, ownerId]
+    );
+    await db.query(
+      `insert into public.photo_upload_intents (
+        id, organization_id, photo_request_id, care_plan_id, care_plan_day_id, portal_session_id,
+        incoming_object_key, declared_mime_type, declared_size_bytes, expires_at
       )
-      values ($1, $2, $3, $4, $5, current_date, 'Temsili fotoğraf günü', 'available')
-    `,
-    [carePlanDayId, organizationId, carePlanId, sourceTemplateDayId, Math.floor(20_000 + Math.random() * 1_000_000)]
-  );
-  await db.query("commit");
+      values ($1, $2, $3, $4, $5, $6, $7, 'image/jpeg', 512, now() + interval '5 minutes')`,
+      [
+        intentId, organizationId, photoRequestId, carePlanId, carePlanDayId, session.rows[0].id,
+        `incoming/${crypto.randomUUID()}`
+      ]
+    );
 
-  await db.query(
-    `
-      insert into public.portal_sessions (
-        organization_id,
-        secure_link_id,
-        care_plan_id,
-        session_hash,
-        status,
-        expires_at,
-        created_at
-      )
-      values ($1, $2, $3, $4, 'active', now() + interval '20 minutes', now())
-    `,
-    [organizationId, secureLinkId, carePlanId, portalSessionHash]
-  );
-
-  const session = await db.query<{ id: string }>("select id from public.portal_sessions where session_hash = $1", [
-    portalSessionHash
-  ]);
-
-  await db.query(
-    `
-      insert into public.photo_requests (
-        id,
-        organization_id,
-        care_plan_id,
-        care_plan_day_id,
-        label,
-        required,
-        created_by_user_id,
-        status,
-        created_at
-      )
-      values ($1, $2, $3, $4, 'Temsili fotoğraf talebi', false, $5, 'active', now())
-    `,
-    [photoRequestId, organizationId, carePlanId, carePlanDayId, createdByUserId]
-  );
-
-  await db.query(
-    `
-      insert into public.photo_upload_intents (
-        id,
-        organization_id,
-        photo_request_id,
-        care_plan_id,
-        care_plan_day_id,
-        portal_session_id,
-        incoming_object_key,
-        declared_mime_type,
-        declared_size_bytes,
-        expires_at
-      )
-      values ($1, $2, $3, $4, $5, $6, $7, 'image/jpeg', 512, now() + interval '5 minutes')
-    `,
-    [
-      intentId,
-      organizationId,
-      photoRequestId,
-      carePlanId,
-      carePlanDayId,
-      session.rows[0]?.id,
-      `incoming/${crypto.randomUUID()}`
-    ]
-  );
-
-  await db.end();
-  return { intentId, portalSessionHash, photoRequestId };
+    return { intentId, portalSessionHash, photoRequestId };
+  } finally {
+    await db.end();
+  }
 }
 
 async function asAuthenticated(client: pg.Client, userId: string) {

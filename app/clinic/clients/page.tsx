@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listClients, type ClientStatus } from "@/lib/clients/service";
-import { formatDisplayDate } from "@/lib/formatters";
+import { formatDisplayDateTime } from "@/lib/formatters";
+import { ButtonLink, EmptyState } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -39,21 +40,28 @@ export default async function ClientsPage({
 
       <div className="panel">
         {clients.length === 0 ? (
-          <div className="empty-state">
-            <h2>Kayıt bulunamadı</h2>
-            <p>Filtreleri değiştirin veya yeni bir danışan kaydı oluşturun.</p>
-          </div>
+          <EmptyState
+            title={params.q ? "Arama sonucu bulunamadı" : status === "archived" ? "Arşivli danışan yok" : "Danışan kaydı yok"}
+            description={
+              params.q
+                ? "Farklı bir arama terimi deneyin veya filtreyi temizleyin."
+                : status === "archived"
+                  ? "Arşivlenmiş danışan kaydı bulunmuyor."
+                  : "Yeni bir danışan kaydı oluşturarak takip akışını başlatın."
+            }
+            action={!params.q && status === "active" ? <ButtonLink href="/clinic/clients/new">Yeni danışan</ButtonLink> : undefined}
+          />
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap" role="region" aria-label="Danışan listesi" tabIndex={0}>
             <table>
               <thead>
                 <tr>
-                  <th>Ad soyad</th>
-                  <th>Telefon</th>
-                  <th>Durum</th>
-                  <th>Sorumlu</th>
-                  <th>Oluşturulma</th>
-                  <th />
+                  <th scope="col">Ad soyad</th>
+                  <th scope="col">Telefon</th>
+                  <th scope="col">Durum</th>
+                  <th scope="col">Sorumlu</th>
+                  <th scope="col">Oluşturulma</th>
+                  <th scope="col"><span className="sr-only">İşlemler</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -65,7 +73,7 @@ export default async function ClientsPage({
                       <span className="badge">{client.status === "active" ? "Aktif" : "Arşivli"}</span>
                     </td>
                     <td data-label="Sorumlu">{client.responsibleMembershipId ? "Atandı" : "Atanmadı"}</td>
-                    <td data-label="Oluşturulma">{formatDisplayDate(client.createdAt)}</td>
+                    <td data-label="Oluşturulma">{formatDisplayDateTime(client.createdAt)}</td>
                     <td data-label="Aksiyon">
                       <Link className="action-link" href={`/clinic/clients/${client.id}`}>
                         Detay

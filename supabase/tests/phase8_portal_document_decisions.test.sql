@@ -81,7 +81,7 @@ values
   ('00000000-0000-4000-8000-000000009502', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-00000000b911', '00000000-0000-4000-8000-00000000e201', 'phase8-session-beta', 'active', now() + interval '15 minutes'),
   ('00000000-0000-4000-8000-000000009503', '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-00000000a911', '00000000-0000-4000-8000-00000000e101', 'phase8-session-expired', 'active', now() - interval '1 minute');
 
-select pg_temp.as_anon();
+set local role service_role;
 
 select is(jsonb_array_length(public.get_portal_document_assignments('phase8-session-active')), 2, '7. Portal sees only own published pending assignments');
 select is((public.get_portal_document_assignments('phase8-session-active')::text ~* 'organization_id|client_id|portal_session|published_by|00000000-0000-4000-8000-000000009113|Beta'), false, '8. Portal DTO excludes internal, draft and cross-tenant data');
@@ -93,7 +93,7 @@ select is((public.record_portal_document_event('phase8-session-active', '0000000
 select is((public.record_portal_document_event('phase8-session-active', '00000000-0000-4000-8000-000000009302', 'consent_withdrawn')->>'status'), 'recorded', '13. Portal can withdraw accepted consent');
 reset role;
 select is((select count(*)::int from public.client_document_events where assignment_id = '00000000-0000-4000-8000-000000009302' and event_type in ('consent_accepted', 'consent_withdrawn')), 2, '14. Withdrawal preserves accepted event history');
-select pg_temp.as_anon();
+set local role service_role;
 select is((public.record_portal_document_event('phase8-session-beta', '00000000-0000-4000-8000-000000009302', 'consent_declined')->>'error'), 'assignment not found', '15. Cross-tenant portal cannot record events');
 
 select is((public.submit_portal_data_request('phase8-session-active', 'access')->>'status'), 'submitted', '16. Portal can submit scoped data request');

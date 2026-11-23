@@ -5,17 +5,17 @@ import { redirect } from "next/navigation";
 import { getServerEnv } from "@/lib/env";
 import { requireActiveMembership } from "@/lib/auth/server";
 import { hasPermission } from "@/lib/authorization";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   buildCareTokenPath,
   createSecureToken,
-  defaultLinkExpiry,
   hashSecureToken,
   mapSecureLinkDatabaseError,
   parsePortalSessionCookieOptions
 } from "@/lib/secure-links";
 
-export async function createOrRotateSecureLink(planId: string, endDate: string) {
+export async function createOrRotateSecureLink(planId: string) {
   const context = await requireActiveMembership();
   if (!hasPermission(context.membership, "secure_link.create")) {
     redirect("/unauthorized");
@@ -28,8 +28,7 @@ export async function createOrRotateSecureLink(planId: string, endDate: string) 
   const { data, error } = await supabase.rpc("create_secure_link_for_plan", {
     target_plan_id: planId,
     target_token_hash: tokenHash,
-    target_token_prefix: token.slice(0, 6),
-    target_expires_at: defaultLinkExpiry(endDate)
+    target_token_prefix: token.slice(0, 3)
   });
 
   if (error) {
@@ -71,11 +70,10 @@ export async function createPortalSessionFromToken(rawToken: string) {
   const tokenHash = hashSecureToken(rawToken, env.AUDIT_LOG_PEPPER);
   const sessionToken = createSecureToken();
   const sessionHash = hashSecureToken(sessionToken, env.AUDIT_LOG_PEPPER);
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("create_portal_session_for_link", {
     target_token_hash: tokenHash,
-    target_session_hash: sessionHash,
-    target_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    target_session_hash: sessionHash
   });
 
   if (error || !data) {
@@ -97,7 +95,7 @@ export async function hasValidPortalSession() {
 
   const env = getServerEnv();
   const sessionHash = hashSecureToken(sessionToken, env.AUDIT_LOG_PEPPER);
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("validate_portal_session_hash", {
     target_session_hash: sessionHash
   });

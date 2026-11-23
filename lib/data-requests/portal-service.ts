@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { getPortalSessionHash } from "@/lib/portal/service";
 import { sanitizePortalDataRequestError, sanitizePortalDataRequests, type PortalDataRequest } from "@/lib/data-requests/portal-contracts";
 import type { DataRequestType } from "@/lib/data-requests";
@@ -11,7 +11,7 @@ export async function getPortalDataRequests(): Promise<PortalDataRequest[]> {
     return [];
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("get_portal_data_requests", {
     target_session_hash: sessionHash
   });
@@ -27,7 +27,7 @@ export async function submitPortalDataRequest(requestType: DataRequestType) {
     return { error: "Oturumunuzun süresi dolmuş olabilir." };
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("submit_portal_data_request", {
     target_session_hash: sessionHash,
     target_request_type: requestType

@@ -6,7 +6,6 @@ import {
   maskTokenPrefix,
   parsePortalSessionCookieOptions,
   secureTokenRouteHeaders,
-  checkTokenValidationRateLimit,
   tokenValidationFailureMessage
 } from "@/lib/secure-links";
 
@@ -57,11 +56,10 @@ describe("secure link token rules", () => {
       "Referrer-Policy": "no-referrer"
     });
   });
+});
 
-  it("exposes a local token validation rate-limit hook", () => {
-    expect(checkTokenValidationRateLimit({ route: "/care/t/[token]" })).toEqual({
-      allowed: true,
-      strategy: "local-hook"
-    });
+it.each(["preview", "staging"] as const)("uses Secure portal cookies in %s", (mode) => {
+  expect(parsePortalSessionCookieOptions(mode)).toMatchObject({
+    httpOnly: true, sameSite: "lax", secure: true, maxAge: 15 * 60
   });
 });

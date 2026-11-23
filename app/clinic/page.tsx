@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
+import { AppointmentLine } from "@/components/appointments/display";
+import { listAppointments, schedulingRoster } from "@/lib/appointments/service";
+import { phase11Config } from "@/lib/phase11/config";
+import { getOnboarding } from "@/lib/phase11/server";
 import { getCurrentOrganizationContext } from "@/lib/auth/server";
 import { listAlerts } from "@/lib/alerts/service";
 import { listClients } from "@/lib/clients/service";
 import { listPlans } from "@/lib/plans/service";
 import { ButtonLink, Card, EmptyState, PageHeader, StatCard, Badge, statusBadgeVariant } from "@/components/ui";
 import { planStatusLabel } from "@/lib/plans";
-import { formatDisplayDate } from "@/lib/formatters";
+import { formatDisplayDate, formatIstanbulIsoDate } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
-
-function todayIso() {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul" }).format(new Date());
-}
 
 export default async function ClinicFoundationPage() {
   const context = await getCurrentOrganizationContext();
@@ -24,18 +24,23 @@ export default async function ClinicFoundationPage() {
     redirect("/unauthorized");
   }
 
-  const [{ plans }, { clients }, openAlerts] = await Promise.all([
+  const [{ plans }, { clients }, openAlerts, upcomingAppointments, calendar] = await Promise.all([
     listPlans(),
     listClients({ status: "active" }),
-    listAlerts({ status: "open" })
+    listAlerts({ status: "open" }),
+    listAppointments(context.organization.id, { upcoming: true, limit: 4 }),
+    schedulingRoster(context.organization.id, context.user.id)
   ]);
-  const today = todayIso();
+  const setup = phase11Config() && context.membership.roleKey === "organization_owner"
+    ? await getOnboarding(context.user.id) : null;
+  const firstUse = setup?.completed_at && setup.organization_id === context.organization.id && clients.length === 0;
+  const today = formatIstanbulIsoDate();
   const activePlans = plans.filter((plan) => plan.status === "active");
   const todaysPlans = plans.filter((plan) => plan.startDate <= today && plan.endDate >= today && plan.status === "active");
   const upcomingControls = plans.filter((plan) => plan.controlDate && plan.status !== "stopped").slice(0, 4);
 
   return (
-    <section className="page-section stack">
+    <section className="page-section stack operations-page">
       <PageHeader
         eyebrow="Genel Bakış"
         title="Operasyon özeti"
@@ -50,6 +55,15 @@ export default async function ClinicFoundationPage() {
         }
       />
 
+      {firstUse && <Card className="stack">
+        <h2>İlk bakım takibinizi başlatın</h2>
+        <p>Sentetik bir danışan ekleyin. Ardından bir işlem ve bakım şablonu oluşturup ilk planı hazırlayın.</p>
+        <div className="button-row">
+          <ButtonLink href="/clinic/clients/new">Danışan ekle</ButtonLink>
+          <ButtonLink href="/clinic/templates" variant="secondary">Bakım şablonlarını aç</ButtonLink>
+        </div>
+      </Card>}
+
       <div className="stat-grid">
         <StatCard label="Aktif bakım planları" value={activePlans.length} hint="Devam eden planlar" tone="teal" />
         <StatCard label="Bugünkü takipler" value={todaysPlans.length} hint="Bugün görüntülenebilir planlar" tone="sage" />
@@ -57,7 +71,45 @@ export default async function ClinicFoundationPage() {
         <StatCard label="Aktif danışanlar" value={clients.length} hint="Arşivlenmemiş temel kayıtlar" tone="neutral" />
       </div>
 
+      <Card className="stack operations-agenda">
+        <div className="section-header">
+          <h2>Yaklaşan randevular</h2>
+          <ButtonLink href="/clinic/appointments?view=agenda" variant="ghost" size="sm">Ajandayı aç</ButtonLink>
+        </div>
+        {!upcomingAppointments.length
+          ? <EmptyState title="Yaklaşan randevu yok" description="Planlanan görüşmeler ve onay bekleyen talepler burada görünür." />
+          : <div className="card-list">{upcomingAppointments.map((item) =>
+              <AppointmentLine item={item} key={item.id} zone={calendar.zone} showDate />
+            )}</div>}
+      </Card>
+
       <div className="dashboard-grid">
+        <Card className="stack operations-review">
+          <div className="section-header">
+            <h2>Takip bildirimleri</h2>
+            <ButtonLink href="/clinic/alerts" variant="ghost" size="sm">
+              İncele
+            </ButtonLink>
+          </div>
+          {openAlerts.length === 0 ? (
+            <EmptyState title="Açık bildirim yok" description="Yapılandırılmış danışan bildirimleri burada görünür." />
+          ) : (
+            <div className="card-list">
+              {openAlerts.slice(0, 5).map((alert) => (
+                <article className="item-card compact-card" key={alert.id}>
+                  <div>
+                    <h2>{alert.clientName}</h2>
+                    <p>Gün {alert.dayNumber} · Klinik değerlendirmesi bekliyor</p>
+                  </div>
+                  <ButtonLink href={`/clinic/alerts/${alert.id}`} variant="secondary" size="sm">
+                    Detay
+                  </ButtonLink>
+                </article>
+              ))}
+            </div>
+          )}
+        </Card>
+
         <Card className="stack">
           <div className="section-header">
             <h2>Son bakım planları</h2>
@@ -78,32 +130,6 @@ export default async function ClinicFoundationPage() {
                     </p>
                   </div>
                   <Badge variant={statusBadgeVariant(plan.status)}>{planStatusLabel(plan.status)}</Badge>
-                </article>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card className="stack">
-          <div className="section-header">
-            <h2>Takip bildirimleri</h2>
-            <ButtonLink href="/clinic/alerts" variant="ghost" size="sm">
-              İncele
-            </ButtonLink>
-          </div>
-          {openAlerts.length === 0 ? (
-            <EmptyState title="Açık bildirim yok" description="Yapılandırılmış danışan bildirimleri burada görünür." />
-          ) : (
-            <div className="card-list">
-              {openAlerts.slice(0, 5).map((alert) => (
-                <article className="item-card compact-card" key={alert.id}>
-                  <div>
-                    <h2>{alert.clientName}</h2>
-                    <p>Gün {alert.dayNumber} · Klinik değerlendirmesi bekliyor</p>
-                  </div>
-                  <ButtonLink href={`/clinic/alerts/${alert.id}`} variant="secondary" size="sm">
-                    Detay
-                  </ButtonLink>
                 </article>
               ))}
             </div>

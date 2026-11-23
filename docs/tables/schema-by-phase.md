@@ -28,6 +28,12 @@ timestamp: 2026-07-08T21:31:00Z
 | `20260706082000_clinic_consent_management.sql` | Faz 8.3A |
 | `20260706082100_clinic_consent_management_corrections.sql` | Faz 8.3A |
 | `20260706082200_phase8_3b_clinic_assignment_and_data_request_review.sql` | Faz 8.3B |
+| `20260706082300_phase8_3b_security_and_workflow_corrections.sql` | Faz 8.3B |
+| `20260709090000_phase9a_durable_rate_limiting.sql` | Faz 9A |
+| `20260709090100_phase9a_rate_limit_force_rls.sql` | Faz 9A |
+| `20260709100000_phase9b_clinic_photo_request_create.sql` | Faz 9B Stage 1A |
+| `20260709110000_phase9b_restore_portal_check_in_payload.sql` | Faz 9B Stage 2B |
+| Local demo fixture `supabase/demo/phase9b-demo.sql` (not a migration; applied via `npm run demo:setup`) | Faz 9B Stage 1B |
 
 # Foundation (Faz 0–1)
 
@@ -111,6 +117,21 @@ timestamp: 2026-07-08T21:31:00Z
 | `data_requests` | Workflow record |
 | `data_request_events` | Append-only status/assignment history |
 
+# Rate Limiting (Faz 9A)
+
+| Table / object | Purpose |
+|----------------|---------|
+| Durable rate-limit tables and RPCs | Shared PostgreSQL rate limiting for security-critical routes |
+| Internal cleanup route support | Bounded batch cleanup for expired rate-limit rows |
+
+# Clinic Photo Request Create (Faz 9B Stage 1A)
+
+| Object | Purpose |
+|--------|---------|
+| `create_photo_request_for_staff` | SECURITY DEFINER RPC for owner/admin photo request creation |
+
+No new tables: uses existing `photo_requests` and `audit_logs`.
+
 # pgTAP Test Mapping
 
 | Test file | Phase coverage |
@@ -126,6 +147,10 @@ timestamp: 2026-07-08T21:31:00Z
 | `phase8_portal_document_decisions.test.sql` | Faz 8.2 |
 | `phase8_3a_clinic_consent_management.test.sql` | Faz 8.3A |
 | `phase8_3b_clinic_assignment_and_data_request_review.test.sql` | Faz 8.3B |
+| `phase8_3b_security_and_workflow_corrections.test.sql` | Faz 8.3B |
+| `phase9a_durable_rate_limiting.test.sql` | Faz 9A |
+| `phase9b_clinic_photo_request_create.test.sql` | Faz 9B Stage 1A |
+| `phase9b_portal_check_in_payload.test.sql` | Faz 9B Stage 2B |
 
 # Related
 

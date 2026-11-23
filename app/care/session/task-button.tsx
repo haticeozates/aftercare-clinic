@@ -7,6 +7,7 @@ import {
   reopenPortalTaskFormAction,
   type PortalTaskActionState
 } from "@/lib/portal/actions";
+import { FeedbackMessage, SubmitButton } from "@/components/ui";
 
 export function PortalTaskButton({
   task,
@@ -18,14 +19,13 @@ export function PortalTaskButton({
   availability: PortalDayAvailability;
 }) {
   const initialState: PortalTaskActionState = {};
-  const [completeState, completeAction, completing] = useActionState(completePortalTaskFormAction, initialState);
-  const [reopenState, reopenAction, reopening] = useActionState(reopenPortalTaskFormAction, initialState);
-  const pending = completing || reopening;
+  const [completeState, completeAction] = useActionState(completePortalTaskFormAction, initialState);
+  const [reopenState, reopenAction] = useActionState(reopenPortalTaskFormAction, initialState);
   const error = completeState.error ?? reopenState.error;
   const localStatus = reopenState.taskStatus === "pending" ? "pending" : completeState.taskStatus === "completed" ? "completed" : task.status;
 
   if (mode === "readonly") {
-    return <p className="notice">Bu plan şu anda yalnızca görüntülenebilir.</p>;
+    return <FeedbackMessage tone="info">Bu plan şu anda yalnızca görüntülenebilir.</FeedbackMessage>;
   }
 
   if (mode === "scheduled" || availability === "locked") {
@@ -46,25 +46,25 @@ export function PortalTaskButton({
       {localStatus === "completed" ? (
         <form action={reopenAction}>
           <input type="hidden" name="taskId" value={task.id} />
-          <button className="button secondary" type="submit" disabled={pending}>
+          <SubmitButton className="secondary" pendingLabel="Geri alınıyor...">
             Geri al
-          </button>
+          </SubmitButton>
         </form>
       ) : (
         <form action={completeAction}>
           <input type="hidden" name="taskId" value={task.id} />
-          <button className="button" type="submit" disabled={pending}>
+          <SubmitButton pendingLabel="Kaydediliyor...">
             {task.taskType === "information" ? "Okudum" : "Tamamlandı olarak işaretle"}
-          </button>
+          </SubmitButton>
         </form>
       )}
-      {completeState.taskStatus === "completed" ? <p className="notice">Görev tamamlandı.</p> : null}
-      {reopenState.taskStatus === "pending" ? <p className="notice">Görev tekrar bekliyor.</p> : null}
-      {error ? (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
+      {completeState.taskStatus === "completed" ? (
+        <FeedbackMessage tone="success">Görev tamamlandı.</FeedbackMessage>
       ) : null}
+      {reopenState.taskStatus === "pending" ? (
+        <FeedbackMessage tone="success">Görev tekrar bekliyor.</FeedbackMessage>
+      ) : null}
+      {error ? <FeedbackMessage tone="error">{error}</FeedbackMessage> : null}
     </div>
   );
 }

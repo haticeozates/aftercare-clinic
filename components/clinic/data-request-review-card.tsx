@@ -1,6 +1,6 @@
-import { transitionDataRequestAction } from "@/lib/data-requests/actions";
 import { DataRequestAssigneePicker } from "@/components/clinic/data-request-assignee-picker";
 import { DataRequestEventHistory } from "@/components/clinic/data-request-event-history";
+import { DataRequestStatusForm } from "@/components/clinic/data-request-status-form";
 import {
   dataRequestStatusLabel,
   dataRequestTypeLabel,
@@ -9,6 +9,8 @@ import {
   type DataRequestListItem,
   type StaffAssigneeOption
 } from "@/lib/data-requests/service";
+import { dataRequestResolutionCodeLabel } from "@/lib/data-requests/labels";
+import { Badge, statusBadgeVariant } from "@/components/ui";
 import { formatDisplayDateTime } from "@/lib/formatters";
 
 export function DataRequestReviewCard({
@@ -25,15 +27,17 @@ export function DataRequestReviewCard({
   const nextStatuses = nextDataRequestStatuses(request.status);
 
   return (
-    <article className="item-card stack">
+    <article id={`request-${request.id}`} className="item-card stack">
       <div>
         <h2>{dataRequestTypeLabel(request.requestType)}</h2>
         <p>
           {request.clientName} · {formatDisplayDateTime(request.submittedAt)}
         </p>
         <div className="badge-row">
-          <span className="badge">{dataRequestStatusLabel(request.status)}</span>
-          {request.resolutionCode ? <span className="badge">{request.resolutionCode}</span> : null}
+          <Badge variant={statusBadgeVariant(request.status)}>{dataRequestStatusLabel(request.status)}</Badge>
+          {request.resolutionCode ? (
+            <Badge variant="neutral">{dataRequestResolutionCodeLabel(request.resolutionCode)}</Badge>
+          ) : null}
           {request.assigneeName ? <span className="badge">Sorumlu: {request.assigneeName}</span> : null}
         </div>
       </div>
@@ -46,24 +50,7 @@ export function DataRequestReviewCard({
         />
       ) : null}
 
-      {canManage && nextStatuses.length > 0 ? (
-        <form action={transitionDataRequestAction} data-request-id={request.id} className="toolbar">
-          <input type="hidden" name="dataRequestId" value={request.id} />
-          <label>
-            Yeni durum
-            <select name="status" defaultValue={nextStatuses[0]}>
-              {nextStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {dataRequestStatusLabel(status)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="button secondary" type="submit">
-            Durumu güncelle
-          </button>
-        </form>
-      ) : null}
+      {canManage ? <DataRequestStatusForm dataRequestId={request.id} nextStatuses={nextStatuses} /> : null}
 
       <div className="stack">
         <h3>Olay geçmişi</h3>

@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { getServerEnv } from "@/lib/env";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { hashSecureToken } from "@/lib/secure-links";
 import { mapPortalError, sanitizePortalPlan, type PortalPlan, type PortalTaskStatus } from "@/lib/portal";
 import { buildReportItemsPayload, mapCheckInError, type ReportItemInput } from "@/lib/check-ins";
@@ -25,7 +25,7 @@ export async function getPortalPlan(): Promise<PortalPlan | null> {
     return null;
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("get_portal_plan_for_session", {
     target_session_hash: sessionHash
   });
@@ -43,7 +43,7 @@ export async function updatePortalTaskStatus(taskId: string, status: Extract<Por
     return { error: "Bağlantı geçersiz veya süresi dolmuş." };
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("set_portal_task_status", {
     target_session_hash: sessionHash,
     target_task_id: taskId,
@@ -71,7 +71,7 @@ export async function submitPortalCheckIn(dayId: string, items: ReportItemInput[
     return { error: "Bağlantı geçersiz veya süresi dolmuş." };
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase.rpc("submit_symptom_report_for_portal", {
     target_session_hash: sessionHash,
     target_day_id: dayId,

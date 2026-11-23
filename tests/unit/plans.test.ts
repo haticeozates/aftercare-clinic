@@ -41,6 +41,9 @@ describe("plan unit rules", () => {
 
     expect(parsed).not.toHaveProperty("organization_id");
     expect(parsed.controlDate).toBeNull();
+    expect(parsePlanCreateInput({ ...parsed, controlDate: "2026-11-19T10:30" }).controlDate)
+      .toBe("2026-11-19T10:30+03:00");
+    expect(() => parsePlanCreateInput({ ...parsed, startDate: "2026-02-30" })).toThrow();
   });
 
   it("maps database errors safely", () => {

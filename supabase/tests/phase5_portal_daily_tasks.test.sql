@@ -54,9 +54,9 @@ create temporary table phase5_expected_active_plan_days as
 select count(*)::int as day_count
 from public.care_plan_days
 where care_plan_id = '00000000-0000-4000-8000-00000000e101';
-grant select on phase5_expected_active_plan_days to anon;
+grant select on phase5_expected_active_plan_days to service_role;
 
-select pg_temp.as_anon();
+set local role service_role;
 
 select is((public.get_portal_plan_for_session('phase5-session-active')->>'plan_status'), 'active', 'Valid portal session opens linked active plan');
 select is((public.get_portal_plan_for_session('phase5-session-active', '00000000-0000-4000-8000-00000000e201'::uuid)) is null, true, 'Session cannot be used for another plan');
@@ -67,8 +67,10 @@ select is(public.get_portal_plan_for_session('phase5-session-expired-link') is n
 select is(public.get_portal_plan_for_session('phase5-session-stopped') is null, true, 'Stopped plan closes portal access');
 select is((public.get_portal_plan_for_session('phase5-session-completed')->>'mode'), 'readonly', 'Completed plan opens read-only');
 
+select pg_temp.as_anon();
 prepare direct_session_read as select count(*)::int from public.portal_sessions;
 select throws_ok('direct_session_read', '42501', null, 'Portal session rows are not browser-readable');
+set local role service_role;
 
 select is((public.get_portal_plan_for_session('phase5-session-active') ? 'client_full_name'), false, 'Portal response excludes client full name');
 select is((public.get_portal_plan_for_session('phase5-session-active')::text ~* 'phone|email|Synthetic Alpha|Alpha Procedure|source_template|secure_link|session_hash|token'), false, 'Portal response excludes PII, internal IDs, token and template source fields');
@@ -85,12 +87,12 @@ select is((public.set_portal_task_status('phase5-session-active', '00000000-0000
 reset role;
 select is((select status from public.care_plan_tasks where id = '00000000-0000-4000-8000-00000000a711'), 'completed', 'Completion updates task status');
 select isnt((select completed_at from public.care_plan_tasks where id = '00000000-0000-4000-8000-00000000a711'), null, 'Completion sets completed_at');
-select pg_temp.as_anon();
+set local role service_role;
 select is((public.set_portal_task_status('phase5-session-active', '00000000-0000-4000-8000-00000000a711', 'pending')->>'task_status'), 'pending', 'Completed task can be reopened to pending');
 reset role;
 select is((select completed_at from public.care_plan_tasks where id = '00000000-0000-4000-8000-00000000a711'), null, 'Reopen clears completed_at');
 
-select pg_temp.as_anon();
+set local role service_role;
 select is((public.set_portal_task_status('phase5-session-scheduled', '00000000-0000-4000-8000-00000000a712', 'completed')->>'error'), 'task is not currently available', 'Scheduled plan task cannot be completed');
 select is((public.set_portal_task_status('phase5-session-stopped', '00000000-0000-4000-8000-00000000a714', 'completed')->>'error'), 'portal session is invalid', 'Stopped plan task cannot be completed');
 select is((public.set_portal_task_status('phase5-session-completed', '00000000-0000-4000-8000-00000000a713', 'completed')->>'error'), 'plan is read-only', 'Completed plan task cannot be changed');
@@ -99,6 +101,7 @@ select is((public.set_portal_task_status('phase5-session-active', '00000000-0000
 select is((public.set_portal_task_status('phase5-session-active', '00000000-0000-4000-8000-00000000ffff', 'completed')->>'error'), 'task not found for portal session', 'Invalid task ID returns generic task error');
 select throws_ok($$select public.set_portal_task_status('phase5-session-active', '00000000-0000-4000-8000-00000000a711', 'skipped')$$, 'P0001', 'unsupported task status transition', 'Portal cannot set skipped status');
 
+select pg_temp.as_anon();
 prepare direct_task_update as update public.care_plan_tasks set status = 'completed' where id = '00000000-0000-4000-8000-00000000a711';
 select throws_ok('direct_task_update', '42501', null, 'Direct browser task update is rejected');
 reset role;
@@ -116,11 +119,19 @@ select throws_ok('direct_event_update', '42501', null, 'Task event update is rej
 prepare direct_event_delete as delete from public.care_plan_task_events;
 select throws_ok('direct_event_delete', '42501', null, 'Task event delete is rejected');
 reset role;
-select is((select count(*)::int from public.care_plan_task_events where event_type in ('completed', 'reopened')), 2, 'Double-submit/idempotent transitions do not create unexpected extra events');
-select is((select row_to_json(e)::text ~* 'phone|email|token|cookie|Klinik tarafından' from public.care_plan_task_events e limit 1), false, 'Task event rows contain no PII, token, cookie, or task content');
+select is(
+  (select count(*)::int from public.care_plan_task_events where care_plan_task_id = '00000000-0000-4000-8000-00000000a711' and event_type in ('completed', 'reopened')),
+  2,
+  'Double-submit/idempotent transitions do not create unexpected extra events'
+);
+select is(
+  (select row_to_json(e)::text ~* 'phone|email|token|cookie|Klinik tarafından' from public.care_plan_task_events e where care_plan_task_id = '00000000-0000-4000-8000-00000000a711' limit 1),
+  false,
+  'Task event rows contain no PII, token, cookie, or task content'
+);
 
 select is((select status from public.care_plan_days where id = '00000000-0000-4000-8000-00000000f101'), 'available', 'Required task reopen keeps day available');
-select pg_temp.as_anon();
+set local role service_role;
 select is((public.set_portal_task_status('phase5-session-active', '00000000-0000-4000-8000-00000000a711', 'completed')->>'day_status'), 'completed', 'All required tasks completed marks day completed');
 select is((public.set_portal_task_status('phase5-session-active', '00000000-0000-4000-8000-00000000a711', 'pending')->>'day_status'), 'available', 'Required task reopen marks day available');
 reset role;

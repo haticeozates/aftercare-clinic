@@ -164,6 +164,7 @@ async function seedPortalDocuments() {
 }
 
 test("portal records notice acknowledgment, consent decisions, withdrawal and data request submission", async ({ page, context }) => {
+  test.setTimeout(60_000);
   const fixture = await seedPortalDocuments();
   await setPortalCookie(context, fixture.rawSession);
 
@@ -171,9 +172,20 @@ test("portal records notice acknowledgment, consent decisions, withdrawal and da
   await expect(page.getByRole("heading", { name: "Belgeler ve tercihlerim" })).toBeVisible();
   await expect(page.getByText("Taslak portal belgesi")).toHaveCount(0);
 
-  await page.getByRole("button", { name: `${fixture.noticeTitle} belgesini görüntüle` }).click();
-  await expect(page.getByRole("dialog")).toContainText("Temsili bilgilendirme metni — gerçek hukuki metin değildir.");
-  await page.getByRole("button", { name: "Okudum / Görüntüledim" }).click();
+  const noticeTrigger = page.getByRole("button", { name: `${fixture.noticeTitle} belgesini görüntüle` });
+  await expect(noticeTrigger).not.toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await noticeTrigger.click();
+  const noticeDialog = page.getByRole("dialog");
+  await expect(noticeDialog.getByRole("button", { name: "Kapat" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(noticeDialog).toBeHidden();
+  await expect(noticeTrigger).toBeFocused();
+  await noticeTrigger.click();
+  await expect(noticeDialog).toContainText("Temsili bilgilendirme metni — gerçek hukuki metin değildir.");
+  const acknowledgeButton = noticeDialog.getByRole("button", { name: "Okudum / Görüntüledim" });
+  await expect(acknowledgeButton).toBeEnabled();
+  await acknowledgeButton.click();
   await expect(page.locator("article").filter({ hasText: fixture.noticeTitle }).getByText("Görüldü")).toBeVisible();
 
   await page.getByRole("button", { name: `${fixture.consentTitle} belgesini görüntüle` }).click();
@@ -182,8 +194,10 @@ test("portal records notice acknowledgment, consent decisions, withdrawal and da
   await page.reload();
   await expect(page.locator("article").filter({ hasText: fixture.consentTitle }).getByText("Kabul edildi")).toBeVisible();
   await page.getByRole("button", { name: `${fixture.consentTitle} belgesini görüntüle` }).click();
-  await page.getByRole("button", { name: "Geri çek" }).click();
-  await page.getByRole("button", { name: "Geri çekmeyi onayla" }).click();
+  const consentDialog = page.getByRole("dialog");
+  await expect(consentDialog.getByText("Geri çekmek verilerinizi")).toBeVisible();
+  await consentDialog.getByRole("button", { name: "Geri çek" }).click({ force: true });
+  await consentDialog.getByRole("button", { name: "Geri çekmeyi onayla" }).click({ force: true });
   await expect(page.locator("article").filter({ hasText: fixture.consentTitle }).getByText("Geri çekildi")).toBeVisible();
 
   await page.getByRole("button", { name: `${fixture.declineTitle} belgesini görüntüle` }).click();

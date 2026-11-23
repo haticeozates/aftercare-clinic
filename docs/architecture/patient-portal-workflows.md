@@ -66,7 +66,7 @@ Document body renders as **plain text** — no `dangerouslySetInnerHTML`.
 
 # Rate Limiting
 
-Secure link validation and portal mutations use local rate-limit hooks. A shared durable limiter is a future hardening task before production data.
+Secure-link token exchange (`/care/t/[token]`) and portal task mutations (`/care/session/tasks`) use a durable PostgreSQL-backed shared limiter with opaque HMAC-derived keys (`RATE_LIMIT_PEPPER`). Process-local counters are not used on these routes. Store failures fail closed with generic responses. Expired bucket cleanup exists as a server-only helper but is not wired to production cron in Faz 9A Stage 1.
 
 # Related
 

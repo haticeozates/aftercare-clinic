@@ -64,7 +64,8 @@ test("owner publishes valid draft and published version becomes read-only", asyn
   await login(page, users.alphaOwner);
   await createTemplate(page, `Synthetic Template Publish ${uniqueSuffix()}`);
   await addDraftContent(page);
-  await page.getByRole("button", { name: "Yayına al" }).click();
+  await page.getByRole("button", { name: "Yayına al", exact: true }).click();
+  await page.getByRole("button", { name: "Evet, yayına al" }).click();
   await expect(page.getByText("Yayınlandı")).toBeVisible();
   await expect(page.getByRole("button", { name: "Görev ekle" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Yayına al" })).toHaveCount(0);
@@ -74,7 +75,8 @@ test("published mutation endpoint rejects normal browser request", async ({ page
   await login(page, users.alphaOwner);
   await createTemplate(page, `Synthetic Template Immutable ${uniqueSuffix()}`);
   await addDraftContent(page);
-  await page.getByRole("button", { name: "Yayına al" }).click();
+  await page.getByRole("button", { name: "Yayına al", exact: true }).click();
+  await page.getByRole("button", { name: "Evet, yayına al" }).click();
   await expect(page.getByText("Yayınlandı")).toBeVisible();
   const versionId = page.url().split("/").at(-1) ?? "";
 
@@ -135,7 +137,8 @@ test("duplicate template name shows friendly error", async ({ page }) => {
 test("draft without day/task cannot be published", async ({ page }) => {
   await login(page, users.alphaOwner);
   await createTemplate(page, `Synthetic Template Invalid ${uniqueSuffix()}`);
-  await page.getByRole("button", { name: "Yayına al" }).click();
+  await page.getByRole("button", { name: "Yayına al", exact: true }).click();
+  await page.getByRole("button", { name: "Evet, yayına al" }).click();
   await expect(page.getByText("Yayına almak için en az bir gün gerekir.")).toBeVisible();
 });
 

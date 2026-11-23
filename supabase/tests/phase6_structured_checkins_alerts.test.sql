@@ -59,19 +59,19 @@ select id as severity_option_id
 from public.care_plan_symptom_options
 where care_plan_id = '00000000-0000-4000-8000-00000000e101' and allows_severity = true
 limit 1;
-grant select on phase6_ids to anon;
+grant select on phase6_ids to anon, service_role;
 
-select pg_temp.as_anon();
+set local role service_role;
 select is((public.submit_symptom_report_for_portal('phase6-session-active', '00000000-0000-4000-8000-00000000f101', jsonb_build_array(jsonb_build_object('option_id', (select severity_option_id from phase6_ids), 'selected', true, 'severity', 5)))->>'status'), 'submitted', '7. Valid active portal session can submit report');
 select is((public.submit_symptom_report_for_portal('phase6-session-expired', '00000000-0000-4000-8000-00000000f101', '[]'::jsonb)->>'error'), 'portal session is invalid', '8. Expired session cannot submit report');
 select is((public.submit_symptom_report_for_portal('phase6-session-revoked', '00000000-0000-4000-8000-00000000f101', '[]'::jsonb)->>'error'), 'portal session is invalid', '9. Revoked session cannot submit report');
 reset role;
 update public.secure_links set status = 'revoked', revoked_at = now(), revoked_by_user_id = '00000000-0000-4000-8000-00000000a101' where id = '00000000-0000-4000-8000-00000000a911';
-select pg_temp.as_anon();
+set local role service_role;
 select is((public.submit_symptom_report_for_portal('phase6-session-active', '00000000-0000-4000-8000-00000000f101', '[]'::jsonb)->>'error'), 'portal session is invalid', '10. Revoked link cannot submit report');
 reset role;
 update public.secure_links set status = 'active', revoked_at = null, revoked_by_user_id = null where id = '00000000-0000-4000-8000-00000000a911';
-select pg_temp.as_anon();
+set local role service_role;
 select is((public.submit_symptom_report_for_portal('phase6-session-stopped', '00000000-0000-4000-8000-00000000f104', '[]'::jsonb)->>'error'), 'portal session is invalid', '11. Stopped plan cannot submit report');
 select is((public.submit_symptom_report_for_portal('phase6-session-completed', '00000000-0000-4000-8000-00000000f103', '[]'::jsonb)->>'error'), 'plan is read-only', '12. Completed plan cannot submit new report');
 select is((public.submit_symptom_report_for_portal('phase6-session-scheduled', '00000000-0000-4000-8000-00000000f102', '[]'::jsonb)->>'error'), 'day is not available', '13. Scheduled plan cannot submit report');

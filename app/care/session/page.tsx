@@ -19,16 +19,18 @@ export default async function CareSessionPage() {
 
   const [documentAssignments, dataRequests] = await Promise.all([getPortalDocumentAssignments(), getPortalDataRequests()]);
   const todayDay = plan.days.find((day) => day.scheduledDate === plan.today) ?? plan.days[0];
+  const actionableTasks = todayDay?.availability === "available"
+    ? todayDay.tasks.filter((task) => task.taskType !== "information" && task.status !== "skipped") : [];
+  const completedTasks = actionableTasks.filter((task) => task.status === "completed").length;
   const photoRequestDays = plan.days.filter((day) => day.photoRequests.length > 0);
 
   return (
     <main className="care-shell">
       <section className="care-hero stack">
-        <p className="eyebrow">AfterCare Clinic</p>
-        <h1>Bakım Planınız</h1>
-        <p>
-          {formatDisplayDate(plan.startDate)} - {formatDisplayDate(plan.endDate)}
-        </p>
+        <div className="care-brand"><span className="brand-mark" aria-hidden="true">AC</span>
+          <p className="eyebrow">AfterCare Clinic</p></div>
+        <div><h1>Bakım Planınız</h1>
+          <p><time dateTime={plan.startDate}>{formatDisplayDate(plan.startDate)}</time> – <time dateTime={plan.endDate}>{formatDisplayDate(plan.endDate)}</time></p></div>
         {plan.mode === "scheduled" ? <p className="notice">Planınız henüz başlamadı.</p> : null}
         {plan.mode === "readonly" ? <p className="notice">Plan tamamlandı.</p> : null}
       </section>
@@ -41,15 +43,20 @@ export default async function CareSessionPage() {
           </div>
           {todayDay ? <span className="badge">Gün {todayDay.dayNumber}</span> : null}
         </div>
-        {todayDay ? (
+        {actionableTasks.length > 0 && <div className="care-progress">
+          <label htmlFor="care-task-progress"><span id="care-task-progress-label">Bugünkü görev ilerlemesi</span>
+            <strong>{completedTasks} / {actionableTasks.length}</strong></label>
+          <progress id="care-task-progress" aria-labelledby="care-task-progress-label" value={completedTasks} max={actionableTasks.length} />
+        </div>}
+        {todayDay?.tasks.length ? (
           <div className="card-list">
             {todayDay.tasks.map((task) => (
-              <article className="portal-task-card" data-testid="portal-task" data-task-id={task.id} key={task.id}>
+              <article className="portal-task-card" data-testid="portal-task" data-task-id={task.id} data-completed={task.status === "completed"} key={task.id}>
                 <div className="stack">
                   <div className="button-row">
                     <span className="badge">{task.taskType === "information" ? "Bilgilendirme" : "Görev"}</span>
                     {task.required ? <span className="badge">Zorunlu</span> : <span className="badge">Opsiyonel</span>}
-                    {task.status === "completed" ? <span className="badge">✓ Tamamlandı</span> : <span className="badge">Bekliyor</span>}
+                    {task.status === "completed" ? <span className="badge care-task-complete">✓ Tamamlandı</span> : <span className="badge">Bekliyor</span>}
                   </div>
                   <h3>{task.title}</h3>
                   {task.description ? <p>{task.description}</p> : null}
@@ -87,7 +94,7 @@ export default async function CareSessionPage() {
       <PortalDocumentsSection assignments={documentAssignments} />
       <PortalDataRequestForm initialRequests={dataRequests} />
 
-      <section className="care-section stack" aria-labelledby="days-heading">
+      <section className="care-section stack care-plan-days" aria-labelledby="days-heading">
         <h2 id="days-heading">Plan günleri</h2>
         <div className="card-list">
           {plan.days.map((day) => (

@@ -5,9 +5,11 @@ import { redirect } from "next/navigation";
 import { requireActiveMembership, requireOrganizationPermission } from "@/lib/auth/server";
 import { hasPermission } from "@/lib/authorization";
 import { writeAuditEvent } from "@/lib/audit";
+import type { ClinicPhotoRequestDto } from "@/lib/photos/clinic-request-contracts";
 import { sanitizeClinicPhotoRecord, type ClinicPhotoRecordDto } from "@/lib/photos/clinic-view";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { mapPlanDatabaseError, parsePlanCreateInput, planStatusLabel, type PlanStatus } from "@/lib/plans";
+import { formatIstanbulIsoDate } from "@/lib/formatters";
+import { effectivePlanStatus, mapPlanDatabaseError, parsePlanCreateInput, planStatusLabel, type PlanStatus } from "@/lib/plans";
 
 export interface PlanListItem {
   id: string;
@@ -28,6 +30,7 @@ export interface PlanDaySnapshot {
   title: string | null;
   tasks: { id: string; title: string; description: string | null; taskType: string; required: boolean }[];
   photos: ClinicPhotoRecordDto[];
+  activePhotoRequests: ClinicPhotoRequestDto[];
 }
 
 export interface SecureLinkMetadata {
@@ -88,11 +91,19 @@ type PhotoRequestRow = {
   required: boolean;
 };
 
+type ActivePhotoRequestRow = {
+  id: string;
+  care_plan_day_id: string;
+  label: string;
+  required: boolean;
+  status: "active" | "cancelled";
+};
+
 function relationOne<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-function toPlanListItem(row: PlanRow): PlanListItem {
+function toPlanListItem(row: PlanRow, today: string): PlanListItem {
   return {
     id: row.id,
     clientName: relationOne(row.clients)?.full_name ?? "Danışan",
@@ -102,7 +113,7 @@ function toPlanListItem(row: PlanRow): PlanListItem {
     startDate: row.start_date,
     endDate: row.end_date,
     controlDate: row.control_date,
-    status: row.status
+    status: effectivePlanStatus(row.status, row.start_date, today)
   };
 }
 
@@ -116,7 +127,12 @@ export async function listPlans(status?: PlanStatus) {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (status) {
+  const today = formatIstanbulIsoDate();
+  if (status === "scheduled") {
+    query = query.eq("status", "scheduled").gt("start_date", today);
+  } else if (status === "active") {
+    query = query.or(`status.eq.active,and(status.eq.scheduled,start_date.lte.${today})`);
+  } else if (status) {
     query = query.eq("status", status);
   }
 
@@ -126,7 +142,7 @@ export async function listPlans(status?: PlanStatus) {
   }
 
   return {
-    plans: data.map(toPlanListItem),
+    plans: data.map((row) => toPlanListItem(row, today)),
     canCreate: hasPermission(context.membership, "plan.create")
   };
 }
@@ -202,7 +218,12 @@ export async function createPlanFromForm(formData: FormData) {
   return String(data);
 }
 
-export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; canManageLinks: boolean; canStop: boolean }> {
+export async function getPlanDetail(id: string): Promise<{
+  plan: PlanDetail;
+  canManageLinks: boolean;
+  canStop: boolean;
+  canCreatePhotoRequest: boolean;
+}> {
   const context = await requireOrganizationPermission("plan.read");
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
@@ -216,7 +237,7 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
     redirect("/clinic/plans");
   }
 
-  const [days, tasks, photos, links] = await Promise.all([
+  const [days, tasks, photos, activeRequests, links] = await Promise.all([
     supabase.from("care_plan_days").select("id,day_number,scheduled_date,title").eq("organization_id", context.organization.id).eq("care_plan_id", id).order("day_number").returns<DayRow[]>(),
     supabase.from("care_plan_tasks").select("id,care_plan_day_id,title,description,task_type,required,display_order").eq("organization_id", context.organization.id).order("display_order").returns<TaskRow[]>(),
     supabase
@@ -228,17 +249,26 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
       .order("uploaded_at", { ascending: false })
       .returns<PhotoRecordRow[]>(),
     supabase
+      .from("photo_requests")
+      .select("id,care_plan_day_id,label,required,status")
+      .eq("organization_id", context.organization.id)
+      .eq("care_plan_id", id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .returns<ActivePhotoRequestRow[]>(),
+    supabase
       .from("secure_links")
       .select("id,token_prefix,status,expires_at,created_at")
       .eq("organization_id", context.organization.id)
       .eq("care_plan_id", id)
       .eq("status", "active")
+      .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
       .limit(1)
       .returns<{ id: string; token_prefix: string | null; status: "active" | "revoked" | "expired"; expires_at: string; created_at: string }[]>()
   ]);
 
-  if (days.error || tasks.error || photos.error || links.error) {
+  if (days.error || tasks.error || photos.error || activeRequests.error || links.error) {
     throw new Error("Plan detayı alınamadı.");
   }
 
@@ -271,7 +301,7 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
 
   return {
     plan: {
-      ...toPlanListItem(data),
+      ...toPlanListItem(data, formatIstanbulIsoDate()),
       days: days.data.map((day) => ({
         id: day.id,
         dayNumber: day.day_number,
@@ -285,6 +315,15 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
             description: task.description,
             taskType: task.task_type,
             required: task.required
+          })),
+        activePhotoRequests: activeRequests.data
+          .filter((request) => request.care_plan_day_id === day.id)
+          .map((request) => ({
+            id: request.id,
+            carePlanDayId: request.care_plan_day_id,
+            label: request.label,
+            required: request.required,
+            status: request.status
           })),
         photos: photos.data
           .filter((photo) => photo.care_plan_day_id === day.id)
@@ -314,7 +353,9 @@ export async function getPlanDetail(id: string): Promise<{ plan: PlanDetail; can
     },
     canManageLinks:
       hasPermission(context.membership, "secure_link.create") && !["completed", "stopped"].includes(data.status),
-    canStop: hasPermission(context.membership, "plan.stop") && ["scheduled", "active"].includes(data.status)
+    canStop: hasPermission(context.membership, "plan.stop") && ["scheduled", "active"].includes(data.status),
+    canCreatePhotoRequest:
+      hasPermission(context.membership, "photo.request.manage") && ["scheduled", "active"].includes(data.status)
   };
 }
 
@@ -325,19 +366,21 @@ export async function stopPlan(planId: string) {
   }
 
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("care_plans")
     .update({
       status: "stopped",
       stopped_at: new Date().toISOString(),
-      stopped_by_user_id: context.user.id,
-      updated_by_user_id: context.user.id
+      stopped_by_user_id: context.user.id
     })
     .eq("id", planId)
-    .eq("organization_id", context.organization.id);
+    .eq("organization_id", context.organization.id)
+    .in("status", ["scheduled", "active"])
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    throw new Error(mapPlanDatabaseError(error));
+  if (error || !data) {
+    throw new Error(mapPlanDatabaseError(error ?? {}));
   }
 
   revalidatePath(`/clinic/plans/${planId}`);

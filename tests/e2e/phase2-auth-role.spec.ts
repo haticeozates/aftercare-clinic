@@ -103,7 +103,7 @@ test("owner updates a client", async ({ page }) => {
   await login(page, users.alphaOwner);
   await createClient(page, `Synthetic Owner Editable ${suffix}`, phone.phone);
 
-  await page.getByRole("button", { name: "Düzenle" }).click();
+  await expect(page.getByRole("heading", { name: "Danışan bilgilerini güncelle" })).toBeVisible();
   await page.getByLabel("Ad soyad").fill(`Synthetic Owner Updated ${suffix}`);
   await page.getByRole("button", { name: "Kaydet" }).click();
   await expect(page.getByRole("heading", { name: `Synthetic Owner Updated ${suffix}` })).toBeVisible();
@@ -115,8 +115,9 @@ test("owner archives a client and sees it under archived filter", async ({ page 
   await login(page, users.alphaOwner);
   await createClient(page, `Synthetic Owner Archive ${suffix}`, phone.phone);
 
-  await page.getByRole("button", { name: "Arşivle" }).click();
-  await expect(page.getByText("Arşivli")).toBeVisible();
+  await page.getByRole("button", { name: "Arşivle", exact: true }).click();
+  await page.getByRole("dialog", { name: "Danışanı arşivle" }).getByRole("button", { name: "Evet, arşivle" }).click();
+  await expect(page.getByText("Arşivli", { exact: true })).toBeVisible();
   await page.goto("/clinic/clients?status=archived");
   await expect(page.getByText(`Synthetic Owner Archive ${suffix}`)).toBeVisible();
 });
@@ -127,7 +128,7 @@ test("staff creates and updates a client", async ({ page }) => {
   await login(page, users.alphaStaff);
   await createClient(page, `Synthetic Staff Client ${suffix}`, phone.phone);
 
-  await page.getByRole("button", { name: "Düzenle" }).click();
+  await expect(page.getByRole("heading", { name: "Danışan bilgilerini güncelle" })).toBeVisible();
   await page.getByLabel("Ad soyad").fill(`Synthetic Staff Updated ${suffix}`);
   await page.getByRole("button", { name: "Kaydet" }).click();
   await expect(page.getByRole("heading", { name: `Synthetic Staff Updated ${suffix}` })).toBeVisible();
@@ -204,6 +205,7 @@ test("admin deactivates a procedure", async ({ page }) => {
   await expect(card).toBeVisible();
   await card.getByText("Düzenle", { exact: true }).click();
   await card.getByRole("button", { name: "Pasifleştir" }).click();
+  await expect(card).toHaveCount(0);
   await page.goto("/clinic/procedures?status=inactive");
   await expect(page.getByText(procedureName)).toBeVisible();
 });

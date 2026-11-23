@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listPlans } from "@/lib/plans/service";
 import { planStatusLabel, type PlanStatus } from "@/lib/plans";
 import { formatDisplayDate } from "@/lib/formatters";
+import { Badge, statusBadgeVariant } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
                   <p>
                     {plan.procedureName} · {plan.templateName} v{plan.versionNumber}
                   </p>
-                  <span className="badge">{planStatusLabel(plan.status)}</span>
+                  <Badge variant={statusBadgeVariant(plan.status)}>{planStatusLabel(plan.status)}</Badge>
                   <span className="badge">{formatDisplayDate(plan.startDate)}</span>
                   <span className="badge">{formatDisplayDate(plan.endDate)}</span>
                 </div>

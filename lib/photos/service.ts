@@ -81,6 +81,10 @@ export async function requestPortalPhotoUploadIntent(input: {
     target_expires_at: expiresAt
   });
 
+  if (error?.code === "42501") {
+    return { error: safeError("request_invalid"), status: 403 };
+  }
+
   if (error || !data) {
     return { error: safeError("upload_failed"), status: 500 };
   }

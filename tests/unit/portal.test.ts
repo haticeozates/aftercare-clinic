@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   computeDayAvailability,
   computeDayStatus,
-  checkPortalTaskMutationRateLimit,
   isPortalTaskTransitionAllowed,
   mapPortalError,
   sanitizePortalPlan
@@ -36,6 +35,13 @@ describe("portal daily task helpers", () => {
         today: "2026-07-06"
       })
     ).toBe("readonly");
+  });
+
+  it("opens a due day while a scheduled plan awaits its first portal access", () => {
+    const day = { planStartDate: "2026-11-18", dayDate: "2026-11-18", today: "2026-11-18" };
+    expect(computeDayAvailability({ ...day, planStatus: "scheduled" })).toBe("available");
+    expect(computeDayAvailability({ ...day, planStatus: "stopped" })).toBe("locked");
+    expect(computeDayAvailability({ ...day, planStatus: "scheduled", today: "2026-11-17" })).toBe("locked");
   });
 
   it("allows only portal-supported task status transitions", () => {
@@ -124,12 +130,5 @@ describe("portal daily task helpers", () => {
     expect(mapPortalError("task not found for portal session")).toBe("İşlem tamamlanamadı. Lütfen sayfayı yenileyin.");
     expect(mapPortalError("task is not currently available")).toBe("Bu görev şu anda tamamlanamaz.");
     expect(mapPortalError("plan is read-only")).toBe("Bu plan şu anda yalnızca görüntülenebilir.");
-  });
-
-  it("exposes a local abuse-control hook for task mutations", () => {
-    expect(checkPortalTaskMutationRateLimit({ route: "/care/session/tasks" })).toEqual({
-      allowed: true,
-      strategy: "local-hook"
-    });
   });
 });

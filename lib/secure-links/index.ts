@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { isHostedAppEnv } from "@/lib/env";
 import type { AppEnv } from "@/lib/types";
 
 export function createSecureToken() {
@@ -28,7 +29,7 @@ export function parsePortalSessionCookieOptions(appEnv: AppEnv) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: appEnv === "production",
+    secure: isHostedAppEnv(appEnv),
     path: "/care",
     maxAge: 15 * 60
   };
@@ -42,18 +43,11 @@ export function secureTokenRouteHeaders() {
   };
 }
 
-export function checkTokenValidationRateLimit(input: { route: string }) {
-  void input.route;
-
-  return {
-    allowed: true,
-    strategy: "local-hook" as const
-  };
-}
+export { checkTokenValidationRateLimit } from "@/lib/rate-limit/security-routes";
 
 export function defaultLinkExpiry(endDate: string) {
-  const date = new Date(`${endDate}T23:59:59.000Z`);
-  date.setUTCDate(date.getUTCDate() + 3);
+  const date = new Date(`${endDate}T00:00:00+03:00`);
+  date.setUTCDate(date.getUTCDate() + 4);
   return date.toISOString();
 }
 
@@ -62,6 +56,10 @@ export function mapSecureLinkDatabaseError(error: { code?: string; message?: str
 
   if (message.includes("stopped plan")) {
     return "Durdurulan plan için güvenli bağlantı oluşturulamaz.";
+  }
+
+  if (message.includes("expiry must be in the future") || message.includes("finite plan end date")) {
+    return "Planın bağlantı oluşturma süresi sona ermiş veya bitiş tarihi geçersiz.";
   }
 
   if (message.includes("plan not found")) {

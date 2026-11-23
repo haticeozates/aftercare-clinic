@@ -58,10 +58,11 @@ No Supabase Auth — session from secure link exchange. See [Patient Portal Work
 | Route | File | Purpose |
 |-------|------|---------|
 | `/internal/jobs/photo-cleanup` | `app/internal/jobs/photo-cleanup/route.ts` | Protected orphan photo cleanup job |
+| `/internal/jobs/rate-limit-cleanup` | `app/internal/jobs/rate-limit-cleanup/route.ts` | Protected rate-limit cleanup job |
 
 # Middleware
 
-There is no `middleware.ts`. Auth enforcement lives in clinic layout, server helpers (`lib/auth/server.ts`), and session-scoped portal RPCs.
+`middleware.ts` currently applies baseline security headers (and HSTS when `APP_ENV=production`). Auth enforcement remains in clinic layout, server helpers (`lib/auth/server.ts`), and session-scoped portal RPCs. Migration from the Next.js `middleware` convention to `proxy` is deferred (Faz 9A / Faz 17 operational follow-up).
 
 # Related
 

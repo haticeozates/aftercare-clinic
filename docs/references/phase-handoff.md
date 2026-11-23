@@ -16,10 +16,12 @@ This document is the practical continuation map for the production project. It r
 ## Current Repository State
 
 - Repository: `https://github.com/haticeozates/aftercare-clinic.git`
-- Branch: `main`
-- Current functional scope: Faz 0 through Faz 8.3B
+- Current local product branch for Faz 9B: `phase-9b-demo-pilot-prep`
+- Current functional scope: Faz 0 through Faz 9A complete; Faz 9B Stages 1A–3 done locally; Faz 10 next (planning)
 - Latest exact commit should be verified with `git log --oneline -5` before starting new work.
 - `.env.local` is intentionally not tracked. Recreate it per machine from local Supabase values and `.env.example`.
+- Authoritative product plan: [`docs/product/master-roadmap.md`](../product/master-roadmap.md).
+- This production codebase is separate from the frozen presentation project `aftercare-clinic-demo`.
 
 ## Hard Boundaries
 
@@ -27,7 +29,8 @@ This document is the practical continuation map for the production project. It r
 - Do not deploy.
 - Do not use real client, health, phone, email, legal, photo or clinic data.
 - Use only local Supabase/Postgres and synthetic `.test` users/data.
-- Do not add appointment scheduling or public landing page work until explicitly requested.
+- Do not start Faz 10–17 product surfaces until the current Faz 9B stage requests them.
+- Appointment scheduling, public landing, notifications, payments and analytics are **planned** in the [master roadmap](../product/master-roadmap.md), not permanently excluded.
 - Do not claim legal/KVKK compliance. The system stores technical records only.
 
 ## Phase Summary
@@ -378,13 +381,156 @@ npm run test:e2e:phase8
 npm run verify:phase8
 ```
 
-## Next Phase
+## Phase 9A Stage 1 — Durable Rate Limiting (complete)
 
-Phase 8 may continue with follow-up work outside the completed 8.3B boundary. **Faz 8.3C is referenced in planning notes but has no authoritative scope definition in this repository yet** — do not treat it as completed or in-progress without an explicit product decision.
+Stage 1 replaces process-local abuse hooks on security-critical portal routes with a durable PostgreSQL-backed shared limiter.
 
-Before starting new work:
+Delivered in Stage 1:
 
-- Verify latest commit with `git log --oneline -5`.
-- Run `npm run verify:phase8`.
-- Do not add appointment scheduling, public landing page, or legal-compliance claims unless explicitly requested.
-- Do not connect to remote/production Supabase or deploy from this repository.
+- Migration `20260709090000_phase9a_durable_rate_limiting.sql` with atomic `consume_rate_limit` RPC and bounded `cleanup_expired_rate_limit_buckets` helper.
+- Opaque HMAC key derivation via dedicated `RATE_LIMIT_PEPPER` (separate from audit and portal token peppers).
+- Durable adapter for production/local Supabase; deterministic memory adapter for unit tests only.
+- Fail-closed behavior when the durable store is unavailable.
+- Migrated call sites: `/care/t/[token]` and `/care/session/tasks`.
+- pgTAP `phase9a_durable_rate_limiting.test.sql`, unit/integration coverage, E2E `phase9a-rate-limit.spec.ts`.
+
+## Phase 9A Stage 2 — Operational Hardening (complete)
+
+Stage 2 hardens environment validation, safe logging, web security boundaries, sensitive cache control, and internal rate-limit bucket cleanup.
+
+Delivered in Stage 2:
+
+- Central production env validation for `RATE_LIMIT_PEPPER` (required, min length, no placeholders, must differ from `AUDIT_LOG_PEPPER`) and `RATE_LIMIT_CLEANUP_SECRET`.
+- Supabase local/production project ref and URL guards in `lib/env/index.ts`.
+- Safe structured server logging (`lib/observability/safe-log.ts`) with allowlisted results and internal error codes.
+- Baseline security headers via `middleware.ts` (`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, frame embedding denial, cross-origin policies).
+- HSTS only when `APP_ENV=production`; not emitted for local/test/development.
+- CSP deferred to Stage 3/future hardening until nonce/hash App Router infrastructure exists.
+- `Cache-Control: no-store, private` on sensitive portal/rate-limit JSON responses and internal cleanup routes.
+- Protected internal cleanup route `POST /internal/jobs/rate-limit-cleanup` with `RATE_LIMIT_CLEANUP_SECRET`, bounded batch deletes, and single-runner lock reuse.
+- Unit/integration/E2E coverage: `phase9a-stage2-gaps.test.ts`, `phase9a-stage2.test.ts`, `phase9a-stage2-boundaries.test.ts`, `phase9a-stage2-hardening.spec.ts`.
+
+## Phase 9A Stage 3 — CI, Migration Integrity, Pre-Deploy Gate (complete)
+
+Stage 3 closes the production-hardening foundation with migration freeze enforcement, repository hygiene, expanded CI, and a single local pre-deploy gate.
+
+Delivered in Stage 3:
+
+- `supabase/migrations/frozen-manifest.json` with SHA-256 checksums for all applied migrations through Phase 9A.
+- `scripts/verify-migration-integrity.mjs` — rejects frozen mutation, deletion, rename, and unexpected mid-history files; allows new forward migrations.
+- `scripts/verify-repository-hygiene.mjs` — rejects tracked secrets, build artefacts, logs, and private key material.
+- `scripts/verify-next-env-dts.mjs` — canonical tracked `next-env.d.ts` validator.
+- `scripts/verify-tracked-worktree.mjs` — post-build/post-test dirty working tree detection.
+- `scripts/verify-predeploy.mjs` exposed as `npm run verify:predeploy` with synthetic local secrets only.
+- `scripts/verify-linux-node24-clean.mjs` exposed as `npm run verify:linux-node24-clean` for Docker-based clean installs.
+- GitHub Actions CI split into `static`, `database`, `e2e`, `build`, and `predeploy-summary` jobs on Ubuntu + Node 24 with `contents: read` permissions.
+- CI requires migration integrity, hygiene, pgTAP, local RLS, phase 7/8/9 E2E, production build, audit, and tracked worktree checks.
+- Regression coverage: `phase9a-stage3-gaps.test.ts`, `phase9a-stage3-release-gate.test.ts`, `phase9a-stage3-ci-contract.test.ts`.
+
+Explicitly not delivered in Faz 9A:
+
+- Production deploy or remote Supabase usage.
+- Production scheduler/cron wiring for photo or rate-limit cleanup (required before production go-live approval).
+- Strict CSP enforcement (deferred until nonce/hash App Router infrastructure exists).
+- `middleware.ts` → Next.js `proxy` migration (deferred; runtime security header behavior preserved and tested).
+- Faz 9B product scope (started separately on `phase-9b-demo-pilot-prep`).
+
+Verification:
+
+```bash
+npm run verify:migration-integrity
+npm run verify:repository-hygiene
+npm run test:unit -- tests/unit/phase9a-stage3-release-gate.test.ts
+npm run verify:predeploy
+```
+
+Optional Linux clean install check:
+
+```bash
+npm run verify:linux-node24-clean
+```
+
+## Faz 9A Closure
+
+Faz 9A production-hardening foundation is complete at the code and local verification level.
+
+Production go-live still requires operator steps outside this repository:
+
+1. Bind production scheduler/cron to `POST /internal/jobs/photo-cleanup` and `POST /internal/jobs/rate-limit-cleanup` with separate secrets.
+2. Configure production environment values that pass `lib/env/index.ts` production guards.
+3. Run GitHub-hosted CI on the release branch and confirm all jobs pass.
+4. Plan strict CSP separately once nonce/hash infrastructure is available.
+
+## Faz 9B — Demo & Pilot Preparation (in progress)
+
+Authoritative plan: [`docs/product/master-roadmap.md`](../product/master-roadmap.md).
+
+| Stage | Status |
+|-------|--------|
+| 1A Clinic photo-request creation | `DONE` |
+| 1B Master roadmap, demo data & golden journey | `DONE` |
+| 2 UI/UX completion | `IN PROGRESS` |
+| 2A Shared UI states & feedback foundation | `DONE` |
+| 2B Mobile, accessibility & copy consistency | `DONE` |
+| 2C Final screen-by-screen polish | `DONE` |
+| 3 Pilot verification | `DONE` (local) |
+
+Stage 1A delivered:
+
+- Forward migration `20260709100000_phase9b_clinic_photo_request_create.sql`
+- `create_photo_request_for_staff` SECURITY DEFINER RPC
+- Clinic contracts/service/action and plan-detail create UI
+- pgTAP + unit/integration + E2E coverage
+
+Stage 1B delivered:
+
+- Authoritative [master roadmap](../product/master-roadmap.md)
+- Separate deterministic fixture `supabase/demo/phase9b-demo.sql` + `npm run demo:setup` / `demo:reset`
+- [Demo runbook](../playbooks/demo-runbook.md)
+- Demo-readiness smoke E2E (not added to GitHub CI until Stage 3)
+
+Stage 2A delivered (local):
+
+- Shared feedback primitives (`FeedbackMessage`, `FormStatusMessage`, `SubmitButton`, `LoadingState`) and `lib/ui/feedback-contracts.ts`
+- Clinic photo-request, consent assignment, data-request review, secure-link, and clients/data-requests empty-state alignment
+- Portal task and check-in mutation feedback with accessible success/error semantics
+- Demo-critical route loading fallbacks (`/clinic/plans/[id]`, `/clinic/data-requests`, `/care/session`)
+- Unit gap/regression tests and `test:e2e:phase9b-ui` smoke coverage
+
+Stage 2B delivered (local):
+
+- Responsive clinic/portal layout hardening (`globals.css`, card stacking, modal overflow)
+- Clinic shell skip link, mobile drawer focus trap, and focus return
+- Turkish copy cleanup (login, unauthorized, alerts, templates, data-requests, consent assignment)
+- `tr-TR` / `Europe/Istanbul` date-time on priority clinic lists
+- Portal data-request and document-card alignment to Stage 2A feedback primitives
+- Migration `20260709110000_phase9b_restore_portal_check_in_payload.sql` (restores structured check-in DTO dropped in Phase 7)
+- `phase9b_portal_check_in_payload.test.sql` pgTAP contract for portal `check_in` DTO
+- [UI language and accessibility reference](../product/ui-language-and-accessibility.md)
+- Unit gap/consistency tests and `test:e2e:phase9b-mobile-a11y` viewport/a11y/copy smoke
+
+Stage 2C delivered (local):
+
+- Shared `ConfirmDialog` with focus trap, Escape, pending guard, and safe error feedback
+- Destructive confirmations for plan stop, secure-link rotate/revoke, client archive, and template publish
+- Client edit form with Turkish field validation via `useActionState`
+- Status label mapping for data-request resolution, alert severity, consent purpose keys, and plan list badges
+- Safe Turkish `not-found` and global `error` boundaries without stack or tenant leakage
+- Tablet link-action stacking on plan detail; confirm dialog action spacing
+- [UI screen acceptance checklist](../playbooks/ui-screen-acceptance-checklist.md)
+- Unit gap/consistency tests and `test:e2e:phase9b-final-ui` polish smoke
+
+Stage 3 delivered (local):
+
+- `npm run verify:phase9b` orchestration (`scripts/verify-phase9b.mjs`) with local-only guard
+- Golden journey E2E `tests/e2e/phase9b-pilot-golden-journey.spec.ts`
+- [Pilot readiness checklist](../playbooks/pilot-readiness-checklist.md) and [pilot user guide](../playbooks/pilot-user-guide.md)
+- [Phase 9B acceptance matrix](phase9b-acceptance-matrix.md)
+- Demo runbook dry-run alignment; deferred production blockers documented
+
+Before continuing to Faz 10:
+
+- Stay on `phase-9b-demo-pilot-prep` until an approved release process requests push/tag/merge.
+- Do not claim production ready, KVKK compliant, or medically validated.
+- Do not connect to remote/production Supabase or deploy without an approved release process.
+- Faz 10–17 surfaces remain roadmap-planned; do not implement them to “make the demo work”.

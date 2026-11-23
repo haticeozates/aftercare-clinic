@@ -1,7 +1,7 @@
 ---
 type: Overview
 title: Platform Overview
-description: AfterCare Clinic Platform purpose, stack, and delivered functional scope through Faz 8.3B.
+description: AfterCare Clinic Platform purpose, stack, and delivered functional scope through Faz 9A / 9B Stage 1A.
 resource: aftercare-clinic-platform
 tags: [overview, nextjs, supabase]
 timestamp: 2026-07-08T21:31:00Z
@@ -31,7 +31,7 @@ AfterCare Clinic Platform is a production-oriented foundation for clinic afterca
 | Patient care portal | `/care/*` | Secure link token → short-lived portal session |
 | Internal jobs | `/internal/jobs/*` | Bearer secret (`PHOTO_CLEANUP_SECRET`) |
 
-# Delivered Phases (Faz 0–8.3B)
+# Delivered Phases
 
 | Phase | Capability |
 |-------|------------|
@@ -48,6 +48,11 @@ AfterCare Clinic Platform is a production-oriented foundation for clinic afterca
 | 8.1–8.2 | Consent/notice documents, portal decisions, data request submission |
 | 8.3A | Clinic consent document management UI |
 | 8.3B | Client document assignment and data request review |
+| 9A | Durable rate limiting, env/logging/header hardening, CI and predeploy gates |
+| 9B Stage 1A | Clinic photo-request creation RPC, service/action and plan-detail UI |
+
+**Current:** Faz 9B Stage 1B (master roadmap, demo fixture, golden journey).  
+**Planned later:** Faz 10–17 (public site, signup, appointments, notifications, payments, analytics, platform admin, go-live) — see [Master Roadmap](../product/master-roadmap.md).
 
 See [Phase Handoff](../references/phase-handoff.md) for continuation details and verification habits.
 

@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { phase11Config } from "@/lib/phase11/config";
+import { clearInviteCookie, clearRecoveryCookie, getInviteCookie, getOnboarding } from "@/lib/phase11/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export interface LoginState {
@@ -30,6 +32,12 @@ export async function signInAction(_previous: LoginState, formData: FormData): P
     .limit(1)
     .maybeSingle();
 
+  if (phase11Config()) {
+    if (await getInviteCookie()) redirect("/ekip/davet");
+    const state = await getOnboarding(data.user.id);
+    if (state && !state.completed_at && (state.organization_id || !membership)) redirect("/kurulum");
+  }
+
   if (!membership) {
     redirect("/unauthorized");
   }
@@ -40,5 +48,9 @@ export async function signInAction(_previous: LoginState, formData: FormData): P
 export async function signOutAction() {
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
+  if (phase11Config()) {
+    await clearInviteCookie();
+    await clearRecoveryCookie();
+  }
   redirect("/login");
 }

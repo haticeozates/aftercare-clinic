@@ -1,5 +1,11 @@
-import { assignDataRequestAction } from "@/lib/data-requests/actions";
-import type { StaffAssigneeOption } from "@/lib/data-requests/service";
+"use client";
+
+import { useActionState } from "react";
+import { assignDataRequestFormAction, type DataRequestFormState } from "@/lib/data-requests/form-actions";
+import type { StaffAssigneeOption } from "@/lib/data-requests/labels";
+import { FormStatusMessage, SubmitButton } from "@/components/ui";
+
+const initialState: DataRequestFormState = {};
 
 export function DataRequestAssigneePicker({
   dataRequestId,
@@ -10,12 +16,14 @@ export function DataRequestAssigneePicker({
   staffOptions: StaffAssigneeOption[];
   currentAssigneeUserId: string | null;
 }) {
+  const [state, action, pending] = useActionState(assignDataRequestFormAction, initialState);
+
   if (staffOptions.length === 0) {
     return <p className="muted">Atanabilir aktif personel bulunamadı.</p>;
   }
 
   return (
-    <form action={assignDataRequestAction} className="toolbar stack">
+    <form action={action} className="toolbar stack">
       <input type="hidden" name="dataRequestId" value={dataRequestId} />
       <label>
         Sorumlu personel
@@ -23,6 +31,7 @@ export function DataRequestAssigneePicker({
           name="assignedToUserId"
           required
           defaultValue={currentAssigneeUserId ?? ""}
+          disabled={pending}
         >
           {!currentAssigneeUserId ? (
             <option value="" disabled>
@@ -36,9 +45,10 @@ export function DataRequestAssigneePicker({
           ))}
         </select>
       </label>
-      <button className="button secondary" type="submit">
+      <FormStatusMessage success={state.success} error={state.error} />
+      <SubmitButton className="secondary" pendingLabel="Atanıyor...">
         Personel ata
-      </button>
+      </SubmitButton>
     </form>
   );
 }

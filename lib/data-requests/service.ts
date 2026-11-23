@@ -12,8 +12,22 @@ import {
   type DataRequestStatus,
   type DataRequestType
 } from "@/lib/data-requests";
+import {
+  dataRequestEventTypeLabel,
+  dataRequestResolutionCodeLabel,
+  dataRequestStatusLabel,
+  dataRequestTypeLabel,
+  type StaffAssigneeOption
+} from "@/lib/data-requests/labels";
 
-export { nextDataRequestStatuses };
+export {
+  dataRequestEventTypeLabel,
+  dataRequestResolutionCodeLabel,
+  dataRequestStatusLabel,
+  dataRequestTypeLabel,
+  nextDataRequestStatuses,
+  type StaffAssigneeOption
+};
 
 export interface DataRequestListItem {
   id: string;
@@ -34,11 +48,6 @@ export interface DataRequestEventItem {
   toStatus: string;
   occurredAt: string;
   assigneeName: string | null;
-}
-
-export interface StaffAssigneeOption {
-  userId: string;
-  label: string;
 }
 
 type DataRequestRow = {
@@ -69,42 +78,6 @@ type MembershipRow = {
 
 function relationOne<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
-}
-
-export function dataRequestTypeLabel(type: DataRequestType) {
-  return {
-    access: "Erişim talebi",
-    copy: "Kopya talebi",
-    correction: "Düzeltme talebi",
-    deletion: "Silme talebi",
-    restriction: "Kısıtlama talebi",
-    objection: "İtiraz talebi",
-    withdraw_consent: "Onay geri çekme talebi",
-    other: "Diğer talep"
-  }[type];
-}
-
-export function dataRequestStatusLabel(status: DataRequestStatus) {
-  return {
-    submitted: "Gönderildi",
-    under_review: "İncelemede",
-    in_progress: "İşlemde",
-    completed: "Tamamlandı",
-    declined: "Reddedildi",
-    cancelled: "İptal edildi"
-  }[status];
-}
-
-export function dataRequestEventTypeLabel(eventType: string) {
-  return {
-    submitted: "Gönderildi",
-    review_started: "İnceleme başladı",
-    assigned: "Personel atandı",
-    status_changed: "Durum değişti",
-    completed: "Tamamlandı",
-    declined: "Reddedildi",
-    cancelled: "İptal edildi"
-  }[eventType] ?? "Olay";
 }
 
 async function loadStaffAssigneeOptions(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, organizationId: string) {

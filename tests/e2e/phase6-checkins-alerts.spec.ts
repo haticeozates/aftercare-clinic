@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
+import { activePlanStartDate } from "./helpers/plan-dates";
 
 const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
 
@@ -44,7 +45,7 @@ async function createPlanAndOpenPortal(page: Page) {
   await page.getByLabel("Danışan").selectOption({ label: "Synthetic Alpha Client One" });
   await page.getByLabel("İşlem").selectOption({ label: "Alpha Procedure One" });
   await page.getByLabel("Şablon").selectOption({ label: "Alpha Template One v1" });
-  await page.getByLabel("Başlangıç tarihi").fill("2026-07-06");
+  await page.getByLabel("Başlangıç tarihi").fill(activePlanStartDate());
   await page.getByRole("button", { name: "Plan oluştur" }).click();
   await expect(page).toHaveURL(/\/clinic\/plans\/[0-9a-f-]+$/);
   await page.getByRole("button", { name: "Güvenli bağlantı oluştur" }).click();
@@ -94,6 +95,23 @@ test("valid report submits and reload prevents duplicate submit", async ({ page 
   await page.reload();
   await expect(page.getByText("Bugün için bildiriminiz kaydedildi.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Kaydedildi" })).toBeDisabled();
+});
+
+test("portal check-in keeps selections after a network failure and allows retry", async ({ page }) => {
+  await createPlanAndOpenPortal(page);
+  await page.getByLabel("Klinik değerlendirmesi için temsili durum").check();
+  const severity = page.getByLabel("Klinik değerlendirmesi için temsili durum şiddet seçimi");
+  await severity.selectOption("5");
+  const submit = page.getByRole("button", { name: "Kliniğe gönder" });
+  const endpoint = "**/care/session/check-in";
+  await page.route(endpoint, (route) => route.abort());
+  await submit.click();
+  const checkInForm = page.getByRole("region", { name: "Bugünkü durumunuzu kliniğinizle paylaşın" });
+  await expect(checkInForm.getByRole("alert")).toHaveText("Bildiriminiz kaydedilemedi. Lütfen tekrar deneyin.");
+  await expect(severity).toHaveValue("5");
+  await page.unroute(endpoint);
+  await submit.click();
+  await expect(page.getByText("Bildiriminiz kliniğinizin değerlendirmesi için kaydedildi.")).toBeVisible();
 });
 
 test("double click does not create duplicate report", async ({ page }) => {
@@ -147,7 +165,7 @@ test("staff can acknowledge and resolve alert", async ({ page }) => {
   await createReportAndOpenAlerts(page, true);
   await page.getByRole("link", { name: "Detay" }).first().click();
   await expect(page.getByRole("heading", { name: "Takip bildirimi detayı" })).toBeVisible();
-  await expect(page.getByText("Klinik değerlendirmesi bekliyor")).toBeVisible();
+  await expect(page.getByLabel("Bildirim durumu").getByText("Klinik değerlendirmesi bekliyor", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "İncelendi olarak işaretle" }).click();
   await expect(page.getByLabel("Bildirim durumu").getByText("İncelendi", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Çözüldü olarak kapat" }).click();
@@ -159,7 +177,7 @@ test("staff can dismiss alert", async ({ page }) => {
   await createReportAndOpenAlerts(page, true);
   await page.getByRole("link", { name: "Detay" }).first().click();
   await page.getByRole("button", { name: "Bildirimi kapat" }).click();
-  await expect(page.getByText("Kapatıldı")).toBeVisible();
+  await expect(page.getByLabel("Bildirim durumu").getByText("Kapatıldı", { exact: true })).toBeVisible();
 });
 
 test("alpha staff cannot see beta alert detail", async ({ page }) => {
@@ -207,8 +225,24 @@ for (const viewport of [
     }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);
-    await page.keyboard.press("Tab");
-    const focusedTag = await page.evaluate(() => document.activeElement?.tagName.toLowerCase());
-    expect(["a", "button", "input", "select"]).toContain(focusedTag);
+    const allowedFocus = ["a", "button", "input", "select", "textarea"];
+    if (viewport.path.startsWith("/care")) {
+      const taskButton = page.getByRole("button", { name: "Tamamlandı olarak işaretle" }).first();
+      await expect(taskButton).toBeVisible();
+      await taskButton.focus();
+      await page.keyboard.press("Tab");
+      const focusedTag = await page.evaluate(() => document.activeElement?.tagName.toLowerCase() ?? "");
+      expect(allowedFocus).toContain(focusedTag);
+      return;
+    }
+    let focusedTag = "";
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await page.keyboard.press("Tab");
+      focusedTag = await page.evaluate(() => document.activeElement?.tagName.toLowerCase() ?? "");
+      if (allowedFocus.includes(focusedTag)) {
+        break;
+      }
+    }
+    expect(allowedFocus).toContain(focusedTag);
   });
 }

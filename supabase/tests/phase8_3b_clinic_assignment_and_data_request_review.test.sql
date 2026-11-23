@@ -401,7 +401,7 @@ insert into public.portal_sessions (
   now() + interval '15 minutes'
 );
 
-select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
+set local role service_role;
 select is(
   jsonb_array_length(public.get_portal_document_assignments('phase83b-session-active')),
   2,
@@ -410,7 +410,7 @@ select is(
 
 reset role;
 update public.consent_documents set status = 'archived' where id = '00000000-0000-4000-8000-00000000b351';
-select pg_temp.as_user('00000000-0000-4000-8000-00000000a101');
+set local role service_role;
 select is(
   jsonb_array_length(public.get_portal_document_assignments('phase83b-session-active')),
   1,

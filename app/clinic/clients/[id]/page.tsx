@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { AppointmentLine } from "@/components/appointments/display";
+import { requireActiveMembership } from "@/lib/auth/server";
+import { listAppointments, schedulingRoster } from "@/lib/appointments/service";
+import { ArchiveClientDialog } from "@/components/clinic/archive-client-dialog";
 import { ClientConsentAssignmentsSection } from "@/components/clinic/client-consent-assignments-section";
-import { archiveClientAction, updateClientAction } from "@/lib/clients/actions";
+import { ClientEditForm } from "@/components/clinic/client-edit-form";
 import { getClientDetail } from "@/lib/clients/service";
 import { formatDisplayDateTime } from "@/lib/formatters";
 
@@ -8,7 +12,11 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { client, canArchive } = await getClientDetail(id);
+  const [{ client, canArchive }, context] = await Promise.all([getClientDetail(id), requireActiveMembership()]);
+  const [appointments, calendar] = await Promise.all([
+    listAppointments(context.organization.id, { client: client.id, limit: 5 }),
+    schedulingRoster(context.organization.id, context.user.id)
+  ]);
 
   return (
     <section className="page-section stack">
@@ -50,34 +58,31 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <div className="panel stack" id="edit-client">
-        <button className="button secondary" type="button">
-          Düzenle
-        </button>
-        <form className="form-grid" action={updateClientAction}>
-          <input type="hidden" name="id" value={client.id} />
-          <label htmlFor="fullName">Ad soyad</label>
-          <input id="fullName" name="fullName" defaultValue={client.fullName} required />
-          <label htmlFor="phone">Telefon</label>
-          <input id="phone" name="phone" defaultValue={client.phone} required />
-          <label htmlFor="email">E-posta opsiyonel</label>
-          <input id="email" name="email" type="email" defaultValue={client.email ?? ""} />
-          <input name="responsibleMembershipId" type="hidden" value="" />
-          <button className="button" type="submit">
-            Kaydet
-          </button>
-        </form>
-      </div>
+      <ClientEditForm
+        client={{
+          id: client.id,
+          fullName: client.fullName,
+          phone: client.phone,
+          email: client.email
+        }}
+      />
 
       {canArchive && client.status === "active" ? (
-        <form action={archiveClientAction}>
-          <input type="hidden" name="id" value={client.id} />
-          <button className="button danger" type="submit">
-            Arşivle
-          </button>
-        </form>
+        <ArchiveClientDialog clientId={client.id} clientName={client.fullName} />
       ) : null}
 
+      <section className="panel stack">
+        <div className="section-header">
+          <h2>Randevu geçmişi</h2>
+          <div className="button-row">
+            <Link href={`/clinic/appointments?list=history&client=${client.id}`}>Tüm randevular</Link>
+            {client.status === "active" && <Link href={`/clinic/appointments/new?client=${client.id}`}>Randevu oluştur</Link>}
+          </div>
+        </div>
+        {appointments.length ? appointments.map((item) => (
+          <AppointmentLine item={item} key={item.id} zone={calendar.zone} showDate />
+        )) : <p>Bu danışana ait randevu bulunmuyor.</p>}
+      </section>
       <ClientConsentAssignmentsSection clientId={client.id} />
     </section>
   );

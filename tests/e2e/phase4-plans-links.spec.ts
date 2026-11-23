@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { activePlanStartDate } from "./helpers/plan-dates";
 
 const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
 
@@ -21,7 +22,7 @@ async function createPlan(page: Page) {
   await page.getByLabel("Danışan").selectOption({ label: "Synthetic Alpha Client One" });
   await page.getByLabel("İşlem").selectOption({ label: "Alpha Procedure One" });
   await page.getByLabel("Şablon").selectOption({ label: "Alpha Template One v1" });
-  await page.getByLabel("Başlangıç tarihi").fill("2026-07-06");
+  await page.getByLabel("Başlangıç tarihi").fill(activePlanStartDate());
   await page.getByRole("button", { name: "Plan oluştur" }).click();
   await expect(page).toHaveURL(/\/clinic\/plans\/[0-9a-f-]+$/);
 }
@@ -36,14 +37,14 @@ async function createSecureLink(page: Page) {
 test("owner creates a care plan from current published template", async ({ page }) => {
   await login(page, users.alphaOwner);
   await createPlan(page);
-  await expect(page.getByText("Plan özeti")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan özeti", exact: true })).toBeVisible();
   await expect(page.getByText("Klinik tarafından yapılandırılmış temsili günlük görev")).toBeVisible();
 });
 
 test("staff creates a care plan", async ({ page }) => {
   await login(page, users.alphaStaff);
   await createPlan(page);
-  await expect(page.getByText("Plan özeti")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan özeti", exact: true })).toBeVisible();
 });
 
 test("plan detail shows read-only snapshot days and tasks", async ({ page }) => {
@@ -65,7 +66,11 @@ test("staff stops a plan and link creation is hidden", async ({ page }) => {
   await login(page, users.alphaStaff);
   await createPlan(page);
   await page.getByRole("button", { name: "Planı durdur" }).click();
-  await expect(page.getByText("Durduruldu")).toBeVisible();
+  await page.getByRole("button", { name: "Evet, planı durdur" }).click();
+  const stopped = page.getByText("Durduruldu", { exact: true });
+  await expect(stopped).toBeVisible();
+  await page.reload();
+  await expect(stopped).toBeVisible();
   await expect(page.getByRole("button", { name: "Güvenli bağlantı oluştur" })).toHaveCount(0);
 });
 
@@ -105,6 +110,7 @@ test("rotate invalidates old link and new link opens token-free session", async 
   await page.goto("/clinic/plans/00000000-0000-4000-8000-00000000e101");
   const oldLink = await createSecureLink(page);
   await page.getByRole("button", { name: "Bağlantıyı yenile" }).click();
+  await page.getByRole("button", { name: "Evet, bağlantıyı yenile" }).click();
   const newLink = (await page.getByTestId("plain-secure-link").textContent()) ?? "";
 
   await page.goto(oldLink);
@@ -148,6 +154,7 @@ test("revoke makes link invalid", async ({ page }) => {
   await page.goto("/clinic/plans/00000000-0000-4000-8000-00000000e101");
   const link = await createSecureLink(page);
   await page.getByRole("button", { name: "Bağlantıyı iptal et" }).click();
+  await page.getByRole("button", { name: "Evet, bağlantıyı iptal et" }).click();
   await expect(page.getByText("Bağlantı iptal edildi.")).toBeVisible();
   await page.goto(link);
   await expect(page).toHaveURL(/\/care\/invalid$/);

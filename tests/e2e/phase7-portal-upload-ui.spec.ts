@@ -290,13 +290,14 @@ test("portal photo upload blocks unsafe selections before requesting credentials
   const { rawSession } = await seedActivePortalPhotoRequest();
   await context.addCookies([{ name: "aftercare_portal_session", value: rawSession, domain: "localhost", path: "/care", httpOnly: true, sameSite: "Lax" }]);
   await page.goto("/care/session");
+  await expect(page.getByRole("heading", { name: "Fotoğraf talebi" }).first()).toBeVisible();
 
   await page.getByLabel("Fotoğraf seç").setInputFiles({
     name: "unsupported.heic",
     mimeType: "image/heic",
     buffer: Buffer.from("not-an-image")
   });
-  await expect(page.getByText("Bu dosya desteklenen fotoğraf formatlarından biri değil.")).toBeVisible();
+  await expect(page.locator("p.error-message")).toHaveText("Bu dosya desteklenen fotoğraf formatlarından biri değil.");
 });
 
 test("cancelled and stopped photo requests cannot start upload from the portal", async ({ page, context }) => {

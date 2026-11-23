@@ -48,6 +48,8 @@ test.describe("Phase 8.3B - Clinic Data Request Review", () => {
     const requestCard = page.locator(`article:has(input[name="dataRequestId"][value="${requestId}"])`);
     await requestCard.getByLabel("Sorumlu personel").selectOption({ label: "Alpha Staff" });
     await requestCard.getByRole("button", { name: "Personel ata" }).click();
+    await expect(requestCard.getByText("Sorumlu: Alpha Staff")).toBeVisible();
+    await expect(requestCard.getByText("Personel atandı")).toBeVisible();
     await page.reload();
     const requestCardAfterAssign = page.locator(`article:has(input[name="dataRequestId"][value="${requestId}"])`);
     await expect(requestCardAfterAssign.getByText("Sorumlu: Alpha Staff")).toBeVisible();
@@ -95,17 +97,15 @@ test.describe("Phase 8.3B - Clinic Data Request Review", () => {
     const declinedCard = page.locator(`article:has(input[name="dataRequestId"][value="${declinedId}"])`);
     await declinedCard.getByLabel("Yeni durum").selectOption({ label: "Reddedildi" });
     await declinedCard.getByRole("button", { name: "Durumu güncelle" }).click();
-    await page.reload();
     await expect(
-      page.locator(`article:has(input[name="dataRequestId"][value="${declinedId}"])`).getByText("manual_review_declined")
+      page.locator(`article:has(input[name="dataRequestId"][value="${declinedId}"])`).getByText("Manuel inceleme reddedildi")
     ).toBeVisible();
 
     const cancelledCard = page.locator(`article:has(input[name="dataRequestId"][value="${cancelledId}"])`);
     await cancelledCard.getByLabel("Yeni durum").selectOption({ label: "İptal edildi" });
     await cancelledCard.getByRole("button", { name: "Durumu güncelle" }).click();
-    await page.reload();
     await expect(
-      page.locator(`article:has(input[name="dataRequestId"][value="${cancelledId}"])`).getByText("manual_review_cancelled")
+      page.locator(`article:has(input[name="dataRequestId"][value="${cancelledId}"])`).getByText("Manuel inceleme iptal edildi")
     ).toBeVisible();
   });
 });

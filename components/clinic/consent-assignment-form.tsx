@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createAssignmentFormAction, type AssignmentActionState } from "@/lib/consent/assignment-actions";
 import type { AssignmentCreateOption, ClientCarePlanOption } from "@/lib/consent/assignment-service-read";
+import { FormStatusMessage, SubmitButton } from "@/components/ui";
 
 const initialState: AssignmentActionState = {};
 
@@ -15,7 +16,7 @@ export function ConsentAssignmentForm({
   publishedVersions: AssignmentCreateOption[];
   carePlans: ClientCarePlanOption[];
 }) {
-  const [state, action, pending] = useActionState(createAssignmentFormAction, initialState);
+  const [state, action] = useActionState(createAssignmentFormAction, initialState);
 
   if (publishedVersions.length === 0) {
     return (
@@ -50,19 +51,8 @@ export function ConsentAssignmentForm({
         <input type="checkbox" name="required" defaultChecked />
         Zorunlu atama
       </label>
-      {state.error ? (
-        <p className="form-error" role="alert" aria-live="polite">
-          {state.error}
-        </p>
-      ) : null}
-      {state.success ? (
-        <p className="form-success" role="status" aria-live="polite">
-          {state.success}
-        </p>
-      ) : null}
-      <button className="button" type="submit" disabled={pending}>
-        {pending ? "Atanıyor..." : "Belge ata"}
-      </button>
+      <FormStatusMessage success={state.success} error={state.error} />
+      <SubmitButton pendingLabel="Atanıyor...">Belge ata</SubmitButton>
     </form>
   );
 }

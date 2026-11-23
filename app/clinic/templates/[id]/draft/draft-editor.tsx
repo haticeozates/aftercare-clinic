@@ -5,9 +5,9 @@ import {
   addAlertRuleAction,
   addDayAction,
   addSymptomOptionAction,
-  addTaskAction,
-  publishDraftFormAction
+  addTaskAction
 } from "@/lib/templates/actions";
+import { TemplatePublishDialog } from "@/components/clinic/template-publish-dialog";
 import type { TemplateVersionDetail } from "@/lib/templates/service";
 
 function ErrorLine({ error }: { error?: string }) {
@@ -23,7 +23,6 @@ export function DraftEditor({ version }: { version: TemplateVersionDetail }) {
   const [taskState, addTask, taskPending] = useActionState(addTaskAction, {});
   const [symptomState, addSymptom, symptomPending] = useActionState(addSymptomOptionAction, {});
   const [ruleState, addRule, rulePending] = useActionState(addAlertRuleAction, {});
-  const [publishState, publish, publishPending] = useActionState(publishDraftFormAction, {});
 
   return (
     <div className="stack">
@@ -104,14 +103,7 @@ export function DraftEditor({ version }: { version: TemplateVersionDetail }) {
           </button>
         </form>
 
-        <form action={publish}>
-          <input type="hidden" name="versionId" value={version.id} />
-          <input type="hidden" name="templateId" value={version.templateId} />
-          <ErrorLine error={publishState.error} />
-          <button className="button" type="submit" disabled={publishPending}>
-            Yayına al
-          </button>
-        </form>
+        <TemplatePublishDialog versionId={version.id} templateId={version.templateId} />
       </div>
 
       <TemplateVersionPreview version={version} />

@@ -1,5 +1,5 @@
 import { reviewAlertAction } from "@/lib/alerts/actions";
-import { alertSeverityLabel, alertStatusLabel, resolutionCodeLabel, type AlertResolutionCode } from "@/lib/alerts";
+import { alertEventStatusLabel, alertEventTypeLabel, alertSeverityLabel, alertStatusLabel, resolutionCodeLabel, structuredSeverityLevelLabel, type AlertResolutionCode } from "@/lib/alerts";
 import { getAlertDetail } from "@/lib/alerts/service";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/formatters";
 
@@ -88,7 +88,7 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
                   <strong>{item.label}</strong>
                   <p>{item.selected ? "Seçildi" : "Seçilmedi"}</p>
                 </div>
-                {item.severity ? <span className="badge">Şiddet {item.severity}</span> : null}
+                {item.severity ? <span className="badge">{structuredSeverityLevelLabel(item.severity)}</span> : null}
               </article>
             ))}
           </div>
@@ -100,9 +100,9 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
             {alert.events.map((event) => (
               <article className="item-card" key={`${event.eventType}-${event.occurredAt}`}>
                 <div>
-                  <strong>{event.eventType}</strong>
+                  <strong>{alertEventTypeLabel(event.eventType)}</strong>
                   <p>
-                    {event.previousStatus ?? "-"} → {event.newStatus}
+                    {alertEventStatusLabel(event.previousStatus)} → {alertEventStatusLabel(event.newStatus)}
                   </p>
                 </div>
                 <span className="badge">{formatDisplayDateTime(event.occurredAt)}</span>

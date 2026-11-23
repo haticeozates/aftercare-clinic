@@ -4,11 +4,15 @@ okf_version: "0.1"
 
 # AfterCare Clinic Platform — Knowledge Bundle
 
-Production-oriented clinic aftercare platform (Next.js + Supabase). Scope: Faz 0 through Faz 8.3B.
+Production-oriented clinic aftercare platform (Next.js + Supabase). Delivered through Faz 9A; Faz 9B local demo/pilot verification complete. Authoritative future plan: [Master Roadmap](product/master-roadmap.md).
 
 # Overview
 
 * [Overview](overview/index.md) - product purpose, boundaries, and operational scope
+
+# Product
+
+* [Product](product/index.md) - authoritative master roadmap and product planning
 
 # Architecture
 
@@ -24,7 +28,7 @@ Production-oriented clinic aftercare platform (Next.js + Supabase). Scope: Faz 0
 
 # Playbooks
 
-* [Playbooks](playbooks/index.md) - local setup, verification gates, and synthetic-data rules
+* [Playbooks](playbooks/index.md) - local setup, verification gates, synthetic-data rules, and demo runbook
 
 # Decisions
 

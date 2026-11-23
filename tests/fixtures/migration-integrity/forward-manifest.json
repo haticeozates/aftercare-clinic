@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "migrations": [
+    {
+      "filename": "20260101000000_sample.sql",
+      "sha256": "8b8a0860d9b183efe119246b8d010f32b1030c93fa12275792b5847fd4fe929f"
+    }
+  ]
+}

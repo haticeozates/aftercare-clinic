@@ -5,8 +5,8 @@ export default function UnauthorizedPage() {
         <p className="eyebrow">Yetkisiz erişim</p>
         <h1>Aktif organizasyon üyeliği bulunamadı</h1>
         <p>
-          Bu production temel ekranı, yalnızca doğrulanmış local/test kullanıcı ve aktif
-          organization membership ile açılacak şekilde tasarlanmıştır.
+          Bu ekran yalnızca doğrulanmış hesap ve aktif organizasyon üyeliği ile açılır. Yerel test ortamında
+          doğru kullanıcıyla giriş yaptığınızdan emin olun.
         </p>
       </section>
     </main>

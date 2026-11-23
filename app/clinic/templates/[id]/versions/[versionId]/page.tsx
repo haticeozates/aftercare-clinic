@@ -1,4 +1,5 @@
 import { TemplateVersionPreview } from "../../draft/draft-editor";
+import { templateVersionStatusLabel } from "@/lib/templates";
 import { getTemplateVersionDetail } from "@/lib/templates/service";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +14,7 @@ export default async function TemplateVersionPage({ params }: { params: Promise<
         <p className="eyebrow">Versiyon görüntüleme</p>
         <h1>{version.templateName}</h1>
         <p>{version.procedureName}</p>
-        <span className="badge">
-          {version.status === "published" ? "Yayınlandı" : version.status === "draft" ? "Taslak" : "Retired"}
-        </span>
+        <span className="badge">{templateVersionStatusLabel(version.status)}</span>
       </div>
 
       <TemplateVersionPreview version={version} />

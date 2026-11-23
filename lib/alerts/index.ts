@@ -24,6 +24,11 @@ export function alertSeverityLabel(severity: AlertSeverity) {
   }[severity];
 }
 
+export function structuredSeverityLevelLabel(level: number) {
+  const labels = ["", "Çok hafif", "Hafif", "Orta", "Belirgin", "Çok belirgin"] as const;
+  return labels[level] ?? `Seviye ${level}`;
+}
+
 export function resolutionCodeLabel(code: AlertResolutionCode) {
   return {
     reviewed_no_action: "İncelendi, ek aksiyon yok",
@@ -32,6 +37,29 @@ export function resolutionCodeLabel(code: AlertResolutionCode) {
     duplicate_report: "Tekrarlanan bildirim",
     other_internal: "Diğer iç değerlendirme"
   }[code];
+}
+
+export function alertEventTypeLabel(eventType: string) {
+  return (
+    {
+      created: "Oluşturuldu",
+      acknowledged: "İncelendi",
+      resolved: "Çözüldü",
+      dismissed: "Kapatıldı"
+    }[eventType] ?? "Durum güncellendi"
+  );
+}
+
+export function alertEventStatusLabel(status: string | null) {
+  if (!status) {
+    return "—";
+  }
+
+  if (status === "open" || status === "acknowledged" || status === "resolved" || status === "dismissed") {
+    return alertStatusLabel(status);
+  }
+
+  return status;
 }
 
 export function mapAlertError(error: unknown) {

@@ -42,6 +42,10 @@ function envValue(key: string, fallback?: string): string {
 
 async function waitForSupabaseAuthReady(): Promise<void> {
   const supabaseUrl = envValue("NEXT_PUBLIC_SUPABASE_URL", "http://127.0.0.1:54321");
+  if (!["http:", "https:"].includes(new URL(supabaseUrl).protocol) ||
+      !["localhost", "127.0.0.1", "[::1]"].includes(new URL(supabaseUrl).hostname)) {
+    throw new Error("E2E auth requires a loopback Supabase URL");
+  }
   const anonKey = envValue("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? DEFAULT_PASSWORD;
 
@@ -73,10 +77,9 @@ async function waitForSupabaseAuthReady(): Promise<void> {
         return;
       }
 
-      const body = await loginResponse.text();
-      console.log(`[e2e setup] seed login not ready (${attempt}/${MAX_ATTEMPTS}): ${loginResponse.status} ${body}`);
-    } catch (error) {
-      console.log(`[e2e setup] supabase auth not ready (${attempt}/${MAX_ATTEMPTS}):`, error);
+      console.log(`[e2e setup] seed login not ready (${attempt}/${MAX_ATTEMPTS}): ${loginResponse.status}`);
+    } catch {
+      console.log(`[e2e setup] supabase auth not ready (${attempt}/${MAX_ATTEMPTS})`);
     }
 
     await new Promise((resolveDelay) => setTimeout(resolveDelay, RETRY_DELAY_MS));
@@ -86,5 +89,6 @@ async function waitForSupabaseAuthReady(): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
+  process.env.E2E_LOCAL_TEST_PASSWORD ??= DEFAULT_PASSWORD;
   await waitForSupabaseAuthReady();
 }

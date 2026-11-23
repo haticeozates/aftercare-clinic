@@ -3,15 +3,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
+import { activePlanStartDate, futureIstanbulDate } from "./helpers/plan-dates";
 
 const password = process.env.E2E_LOCAL_TEST_PASSWORD ?? "local-test-password";
 const alphaOwner = "alpha-owner@example.test";
-
-function futureIstanbulDate(daysAhead = 7) {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + daysAhead);
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Istanbul" }).format(date);
-}
 
 function readLocalEnv() {
   const envPath = path.join(process.cwd(), ".env.local");
@@ -53,7 +48,7 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/clinic$/);
 }
 
-async function createPlan(page: Page, startDate = "2026-07-06") {
+async function createPlan(page: Page, startDate = activePlanStartDate()) {
   await page.goto("/clinic/plans/new");
   await page.getByLabel("Danışan").selectOption({ label: "Synthetic Alpha Client One" });
   await page.getByLabel("İşlem").selectOption({ label: "Alpha Procedure One" });
@@ -124,6 +119,28 @@ test("today tasks are visible and future tasks are not treated as available", as
   await expect(page.getByRole("button", { name: "Tamamlandı olarak işaretle" })).toBeVisible();
 });
 
+test("mobile task copy uses the card width and the action remains keyboard accessible", async ({ page }) => {
+  await openPortalForNewPlan(page);
+  const card = page.getByTestId("portal-task").filter({ has: page.getByRole("button", { name: "Tamamlandı olarak işaretle" }) }).first();
+  const action = card.getByRole("button", { name: "Tamamlandı olarak işaretle" });
+
+  for (const width of [320, 375, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(card).toBeVisible();
+    const layout = await card.evaluate((element) => {
+      const copy = element.firstElementChild!.getBoundingClientRect();
+      const action = element.lastElementChild!.getBoundingClientRect();
+      return { copyBottom: copy.bottom, actionTop: action.top, copyWidth: copy.width, actionWidth: action.width,
+        scrollWidth: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth };
+    });
+    expect(layout.actionTop, width + " px").toBeGreaterThanOrEqual(layout.copyBottom);
+    expect(layout.copyWidth, width + " px").toBeCloseTo(layout.actionWidth, 0);
+    expect(layout.scrollWidth, width + " px").toBe(layout.viewport);
+    await action.focus();
+    await expect(action).toBeFocused();
+  }
+});
+
 test("pending task can be completed and remains completed after reload", async ({ page }) => {
   await openPortalForNewPlan(page);
   await page.getByRole("button", { name: "Tamamlandı olarak işaretle" }).click();
@@ -182,6 +199,7 @@ test("link revoke closes an already open portal session", async ({ page }) => {
   await expect(page).toHaveURL(/\/care\/session$/);
   await page.goto(planUrl);
   await page.getByRole("button", { name: "Bağlantıyı iptal et" }).click();
+  await page.getByRole("button", { name: "Evet, bağlantıyı iptal et" }).click();
   await expect(page.getByText("Bağlantı iptal edildi.")).toBeVisible();
   await page.goto("/care/session");
   await expect(page).toHaveURL(/\/care\/invalid$/);
@@ -195,6 +213,7 @@ test("link rotate closes old portal session", async ({ page }) => {
   await expect(page).toHaveURL(/\/care\/session$/);
   await page.goto(planUrl);
   await page.getByRole("button", { name: "Bağlantıyı yenile" }).click();
+  await page.getByRole("button", { name: "Evet, bağlantıyı yenile" }).click();
   await expect(page.getByTestId("plain-secure-link")).toBeVisible();
   await page.goto("/care/session");
   await expect(page).toHaveURL(/\/care\/invalid$/);
@@ -245,7 +264,8 @@ test("task can be completed with keyboard focus", async ({ page }) => {
 test("locked and completed states are described with text", async ({ page }) => {
   await openPortalForNewPlan(page);
   await page.getByRole("button", { name: "Tamamlandı olarak işaretle" }).click();
-  await expect(page.getByText("Tamamlandı")).toBeVisible();
+  await expect(page.getByTestId("portal-task").getByText("✓ Tamamlandı")).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Görev tamamlandı." })).toBeVisible();
 
   await login(page);
   await createPlan(page, futureIstanbulDate());

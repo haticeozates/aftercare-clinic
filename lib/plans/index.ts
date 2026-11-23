@@ -7,10 +7,14 @@ const planCreateSchema = z.object({
   procedureId: z.string().uuid(),
   careTemplateId: z.string().uuid(),
   templateVersionId: z.string().uuid(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  controlDate: z.string().optional().nullable(),
+  startDate: z.iso.date(),
+  controlDate: z.union([z.literal(""), z.iso.datetime({ local: true, offset: true })]).nullish(),
   responsibleMembershipId: z.string().uuid().optional().nullable()
 });
+
+export function effectivePlanStatus(status: PlanStatus, startDate: string, today: string): PlanStatus {
+  return status === "scheduled" && startDate <= today ? "active" : status;
+}
 
 export function calculatePlanEndDate(startDate: string, maxDayNumber: number) {
   const date = new Date(`${startDate}T00:00:00.000Z`);
@@ -36,13 +40,17 @@ export function canTransitionPlanStatus(from: PlanStatus, to: PlanStatus) {
 
 export function parsePlanCreateInput(input: Record<string, unknown>) {
   const parsed = planCreateSchema.parse(input);
+  // A clinic datetime-local input denotes Istanbul wall time (UTC+03:00).
+  const controlDate = parsed.controlDate && !/(?:Z|[+-]\d{2}:\d{2})$/.test(parsed.controlDate)
+    ? parsed.controlDate + "+03:00"
+    : parsed.controlDate || null;
   return {
     clientId: parsed.clientId,
     procedureId: parsed.procedureId,
     careTemplateId: parsed.careTemplateId,
     templateVersionId: parsed.templateVersionId,
     startDate: parsed.startDate,
-    controlDate: parsed.controlDate ? parsed.controlDate : null,
+    controlDate,
     responsibleMembershipId: parsed.responsibleMembershipId ?? null
   };
 }
